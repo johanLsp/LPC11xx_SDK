@@ -42,6 +42,10 @@ extern "C" {
 #endif
 #endif
 
+#include "LPC11xx.h"
+#include "uart.h"
+#include "timer32.h"
+
 #define WEAK __attribute__ ((weak))
 #define ALIAS(f) __attribute__ ((weak, alias (#f)))
 

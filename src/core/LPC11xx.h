@@ -30,6 +30,8 @@
 #ifndef __LPC11xx_H__
 #define __LPC11xx_H__
 
+#include <stdint.h>
+
 #ifdef __cplusplus
  extern "C" {
 #endif
@@ -589,6 +591,28 @@ typedef struct
 #define LPC_GPIO1             ((LPC_GPIO_TypeDef   *) LPC_GPIO1_BASE )
 #define LPC_GPIO2             ((LPC_GPIO_TypeDef   *) LPC_GPIO2_BASE )
 #define LPC_GPIO3             ((LPC_GPIO_TypeDef   *) LPC_GPIO3_BASE )
+
+
+#define SYSAHBCLKCTRL_SYS        (0x0001<<0)
+#define SYSAHBCLKCTRL_ROM        (0x0001<<1)
+#define SYSAHBCLKCTRL_RAM        (0x0001<<2)
+#define SYSAHBCLKCTRL_FLASHREG   (0x0001<<3)
+#define SYSAHBCLKCTRL_FLASHARRAY (0x0001<<4)
+#define SYSAHBCLKCTRL_I2C        (0x0001<<5)
+#define SYSAHBCLKCTRL_GPIO       (0x0001<<6)
+#define SYSAHBCLKCTRL_CT16B0     (0x0001<<7)
+#define SYSAHBCLKCTRL_CT16B1     (0x0001<<8)
+#define SYSAHBCLKCTRL_CT32B0     (0x0001<<9)
+#define SYSAHBCLKCTRL_CT32B1     (0x0001<<10)
+#define SYSAHBCLKCTRL_SSP0       (0x0001<<11)
+#define SYSAHBCLKCTRL_UART       (0x0001<<12)
+#define SYSAHBCLKCTRL_ADC        (0x0001<<13)
+#define SYSAHBCLKCTRL_WDT        (0x0001<<15)
+#define SYSAHBCLKCTRL_IOCON      (0x0001<<16)
+#define SYSAHBCLKCTRL_CAN        (0x0001<<17)
+#define SYSAHBCLKCTRL_SSP1       (0x0001<<18)
+
+
 
 #ifdef __cplusplus
 }

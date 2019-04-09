@@ -44,10 +44,13 @@ BUILD_DIR=build
 CORE_DIR=$(SRC_DIR)/core
 
 CORE = timer32 \
+	   timer16 \
        gpio \
+	   uart \
 	   system_LPC11xx \
 	   core_cm0 \
 	   cr_startup_lpc11
+
 
 
 
@@ -58,6 +61,7 @@ TARGET_DIRS = $(foreach dir, $(DIRS), $(addprefix $(BUILD_DIR)/, $(dir)))
 
 # Generate the GCC includes parameters by adding -I before each source folder
 INCLUDES = $(foreach dir, $(SRC_DIRS), $(addprefix -I, $(dir)))
+INCLUDES += $(addprefix -I, $(CORE_DIR))
 # Add this list to VPATH, the place make will look for the source files
 VPATH = $(SRC_DIRS) $(CORE_DIR)
 
@@ -95,4 +99,4 @@ upload: $(BIN)
 	lpc21isp -bin $(BIN) $(PORT) $(BAUD) $(ISPCLK)
 
 clean:
-	rm -f $(CORE_OBJS) $(ELF) $(BIN)
+	rm -f $(CORE_OBJS) $(OBJS) $(ELF) $(BIN)

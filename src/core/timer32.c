@@ -217,16 +217,16 @@ void init_timer32(uint8_t timer_num, uint32_t TimerInterval)
     /* Some of the I/O pins need to be clearfully planned if
     you use below module because JTAG and TIMER CAP/MAT pins are muxed. */
     LPC_SYSCON->SYSAHBCLKCTRL |= (1<<9);
-    LPC_IOCON->PIO1_5 &= ~0x07;	/*  Timer0_32 I/O config */
-    LPC_IOCON->PIO1_5 |= 0x02;	/* Timer0_32 CAP0 */
-    LPC_IOCON->PIO1_6 &= ~0x07;
-    LPC_IOCON->PIO1_6 |= 0x02;	/* Timer0_32 MAT0 */
-    LPC_IOCON->PIO1_7 &= ~0x07;
-    LPC_IOCON->PIO1_7 |= 0x02;	/* Timer0_32 MAT1 */
-    LPC_IOCON->PIO0_1 &= ~0x07;	
-    LPC_IOCON->PIO0_1 |= 0x02;	/* Timer0_32 MAT2 */
-    LPC_IOCON->R_PIO0_11 &= ~0x07;	
-    LPC_IOCON->R_PIO0_11 |= 0x03;	/* Timer0_32 MAT3 */
+    //LPC_IOCON->PIO1_5 &= ~0x07;	/*  Timer0_32 I/O config */
+    //LPC_IOCON->PIO1_5 |= 0x02;	/* Timer0_32 CAP0 */
+    //LPC_IOCON->PIO1_6 &= ~0x07;
+    //LPC_IOCON->PIO1_6 |= 0x02;	/* Timer0_32 MAT0 */
+    //LPC_IOCON->PIO1_7 &= ~0x07;
+    //LPC_IOCON->PIO1_7 |= 0x02;	/* Timer0_32 MAT1 */
+  //  LPC_IOCON->PIO0_1 &= ~0x07;	
+   // LPC_IOCON->PIO0_1 |= 0x02;	/* Timer0_32 MAT2 */
+    //LPC_IOCON->R_PIO0_11 &= ~0x07;	
+    //LPC_IOCON->R_PIO0_11 |= 0x03;	/* Timer0_32 MAT3 */
     timer32_0_counter = 0;
     timer32_0_capture = 0;
     LPC_TMR32B0->MR0 = TimerInterval;
@@ -247,16 +247,16 @@ void init_timer32(uint8_t timer_num, uint32_t TimerInterval)
     /* Some of the I/O pins need to be clearfully planned if
     you use below module because JTAG and TIMER CAP/MAT pins are muxed. */
     LPC_SYSCON->SYSAHBCLKCTRL |= (1<<10);
-    LPC_IOCON->R_PIO1_0  &= ~0x07;	/*  Timer1_32 I/O config */
-    LPC_IOCON->R_PIO1_0  |= 0x03;	/* Timer1_32 CAP0 */
-    LPC_IOCON->R_PIO1_1  &= ~0x07;	
-    LPC_IOCON->R_PIO1_1  |= 0x03;	/* Timer1_32 MAT0 */
-    LPC_IOCON->R_PIO1_2 &= ~0x07;
-    LPC_IOCON->R_PIO1_2 |= 0x03;	/* Timer1_32 MAT1 */
-    LPC_IOCON->SWDIO_PIO1_3  &= ~0x07;
-    LPC_IOCON->SWDIO_PIO1_3  |= 0x03;	/* Timer1_32 MAT2 */
-    LPC_IOCON->PIO1_4 &= ~0x07;
-    LPC_IOCON->PIO1_4 |= 0x02;		/* Timer0_32 MAT3 */
+    //LPC_IOCON->R_PIO1_0  &= ~0x07;	/*  Timer1_32 I/O config */
+    //LPC_IOCON->R_PIO1_0  |= 0x03;	/* Timer1_32 CAP0 */
+    //LPC_IOCON->R_PIO1_1  &= ~0x07;	
+    //LPC_IOCON->R_PIO1_1  |= 0x03;	/* Timer1_32 MAT0 */
+    //LPC_IOCON->R_PIO1_2 &= ~0x07;
+    //LPC_IOCON->R_PIO1_2 |= 0x03;	/* Timer1_32 MAT1 */
+    //LPC_IOCON->SWDIO_PIO1_3  &= ~0x07;
+    //LPC_IOCON->SWDIO_PIO1_3  |= 0x03;	/* Timer1_32 MAT2 */
+    //LPC_IOCON->PIO1_4 &= ~0x07;
+    //LPC_IOCON->PIO1_4 |= 0x02;		/* Timer0_32 MAT3 */
 
     timer32_1_counter = 0;
     timer32_1_capture = 0;

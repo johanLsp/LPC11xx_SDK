@@ -31,6 +31,8 @@
 /* The test is either MAT_OUT or CAP_IN. Default is MAT_OUT. */
 #define TIMER_MATCH		0
 
+#define TIMER16_0 0
+#define TIMER16_1 1
 
 #define EMC0	4
 #define EMC1	6
@@ -52,14 +54,16 @@
 #endif
 
 void delayMs(uint8_t timer_num, uint32_t delayInMs);
-void TIMER16_0_IRQHandler(void);
-void TIMER16_1_IRQHandler(void);
+extern "C" void TIMER16_0_IRQHandler(void);
+extern "C" void TIMER16_1_IRQHandler(void);
 void enable_timer16(uint8_t timer_num);
 void disable_timer16(uint8_t timer_num);
 void reset_timer16(uint8_t timer_num);
 void init_timer16(uint8_t timer_num, uint32_t timerInterval);
 void init_timer16PWM(uint8_t timer_num, uint32_t period, uint8_t match_enable, uint8_t cap_enabled);
 void setMatch_timer16PWM (uint8_t timer_num, uint8_t match_nr, uint32_t value);
+
+void set_timer16IRQHandler(uint8_t timer_num, void(*handler)(void), bool clear_interrupt);
 
 #endif /* end __TIMER16_H */
 /*****************************************************************************

@@ -36,6 +36,14 @@ volatile uint32_t timer16_1_capture = 0;
 volatile uint32_t timer16_0_period = 0;
 volatile uint32_t timer16_1_period = 0;
 
+volatile bool timer16_0_handler_set = false;
+volatile bool timer16_1_handler_set = false;
+volatile bool timer16_0_clear_interrupt = false;
+volatile bool timer16_1_clear_interrupt = false;
+
+void (*timer16_0_handler)(void);
+void (*timer16_1_handler)(void);
+
 /*****************************************************************************
 ** Function name:		delayMs
 **
@@ -90,8 +98,13 @@ void delayMs(uint8_t timer_num, uint32_t delayInMs)
 ** Returned value:		None
 ** 
 ******************************************************************************/
-void TIMER16_0_IRQHandler(void)
-{  
+void TIMER16_0_IRQHandler(void) {  
+  if (timer16_0_handler_set) {
+    timer16_0_handler();
+    if (!timer16_0_clear_interrupt)
+      return;
+  }
+
   if ( LPC_TMR16B0->IR & 0x1 )
   {
 	LPC_TMR16B0->IR = 1;			/* clear interrupt flag */
@@ -115,8 +128,12 @@ void TIMER16_0_IRQHandler(void)
 ** Returned value:		None
 ** 
 ******************************************************************************/
-void TIMER16_1_IRQHandler(void)
-{
+void TIMER16_1_IRQHandler(void) {
+  if (timer16_1_handler_set) {
+    timer16_1_handler();
+    if (!timer16_1_clear_interrupt)
+      return;
+  }
   if ( LPC_TMR16B1->IR & 0x1 )
   {  
 	LPC_TMR16B1->IR = 1;			/* clear interrupt flag */
@@ -231,7 +248,7 @@ void init_timer16(uint8_t timer_num, uint32_t TimerInterval)
     //LPC_IOCON->SWCLK_PIO0_10 |= 0x03;		/* Timer0_16 MAT2 */
 	/*--------------*/
     
-	timer16_0_counter = 0;
+	  timer16_0_counter = 0;
     timer16_0_capture = 0;
     LPC_TMR16B0->MR0 = TimerInterval;
 #if TIMER_MATCH
@@ -445,6 +462,19 @@ void setMatch_timer16PWM (uint8_t timer_num, uint8_t match_nr, uint32_t value)
     }	
   }
 }
+
+void set_timer16IRQHandler(uint8_t timer_num, void(*handler)(void), bool clear_interrupt) {
+  if (timer_num == 0) {
+    timer16_0_handler = handler;
+    timer16_0_handler_set = true;
+    timer16_0_clear_interrupt = clear_interrupt;
+  } else if (timer_num == 1) {
+    timer16_1_handler = handler;
+    timer16_1_handler_set = true;
+    timer16_1_clear_interrupt = clear_interrupt;
+  }
+}
+
 
 /******************************************************************************
 **                            End Of File
