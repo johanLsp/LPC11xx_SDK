@@ -44,63 +44,6 @@ void GPIO::Init() {
   return;
 }
 
-LPC_GPIO_TypeDef* GPIO::GetGPIO(uint8_t port) {
-  switch (port) {
-    case PORT0:
-      return LPC_GPIO0;
-    case PORT1:
-      return LPC_GPIO1;
-    case PORT2:
-      return LPC_GPIO2;
-    case PORT3:
-      return LPC_GPIO3;
-    default:
-      break;
-  }
-}
-
-void GPIO::SetInterrupt(uint32_t port, uint32_t bit, uint32_t sense,
-                        uint32_t single, uint32_t event) {
-  LPC_GPIO_TypeDef* LPC_GPIO = GetGPIO(port);
-
-  if (sense == 0) {
-    LPC_GPIO->IS &= ~(0x1 << bit);
-    // single or double only applies when sense is 0(edge trigger).
-    if (single == 0) {
-      LPC_GPIO->IBE &= ~(0x1 << bit);
-    } else {
-      LPC_GPIO->IBE |= (0x1 << bit);
-    }
-  } else {
-    LPC_GPIO->IS |= (0x1 << bit);
-    if (event == 0) {
-      LPC_GPIO->IEV &= ~(0x1 << bit);
-    } else {
-      LPC_GPIO->IEV |= (0x1 << bit);
-    }
-  }
-  return;
-}
-
-void GPIO::IntEnable(uint32_t port, uint32_t bit) {
-  GetGPIO(port)->IE |= (0x1 << bit);
-}
-
-void GPIO::IntDisable(uint32_t port, uint32_t bit) {
-  GetGPIO(port)->IE &= ~(0x1 << bit);
-}
-
-uint32_t GPIO::IntStatus(uint32_t port, uint32_t bit) {
-  uint32_t regVal = 0;
-    if (GetGPIO(port)->MIS & (0x1 << bit)) {
-      regVal = 1;
-    }
-  return regVal;
-}
-
-void GPIO::IntClear(uint32_t port, uint32_t bit) {
-  GetGPIO(port)->IC |= (0x1 << bit);
-}
 
 uint32_t GPIO::GetValue(uint32_t port, uint32_t bit) {
   uint32_t regVal = 0;
@@ -124,4 +67,45 @@ void GPIO::SetDirection(uint32_t port, uint32_t bit, uint32_t direction) {
   } else {
     LPC_GPIO[port]->DIR &= ~(1 << bit);
   }
+}
+
+void GPIO::SetInterrupt(uint32_t port, uint32_t bit, uint32_t sense,
+                        uint32_t single, uint32_t event) {
+  if (sense == 0) {
+    LPC_GPIO[port]->IS &= ~(0x1 << bit);
+    // single or double only applies when sense is 0(edge trigger).
+    if (single == 0) {
+      LPC_GPIO[port]->IBE &= ~(0x1 << bit);
+    } else {
+      LPC_GPIO[port]->IBE |= (0x1 << bit);
+    }
+  } else {
+    LPC_GPIO[port]->IS |= (0x1 << bit);
+    if (event == 0) {
+      LPC_GPIO[port]->IEV &= ~(0x1 << bit);
+    } else {
+      LPC_GPIO[port]->IEV |= (0x1 << bit);
+    }
+  }
+  return;
+}
+
+void GPIO::IntEnable(uint32_t port, uint32_t bit) {
+  LPC_GPIO[port]->IE |= (0x1 << bit);
+}
+
+void GPIO::IntDisable(uint32_t port, uint32_t bit) {
+  LPC_GPIO[port]->IE &= ~(0x1 << bit);
+}
+
+uint32_t GPIO::IntStatus(uint32_t port, uint32_t bit) {
+  uint32_t regVal = 0;
+    if (LPC_GPIO[port]->MIS & (0x1 << bit)) {
+      regVal = 1;
+    }
+  return regVal;
+}
+
+void GPIO::IntClear(uint32_t port, uint32_t bit) {
+  LPC_GPIO[port]->IC |= (0x1 << bit);
 }
