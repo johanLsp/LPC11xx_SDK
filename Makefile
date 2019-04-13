@@ -43,8 +43,7 @@ SRC_DIR=src
 BUILD_DIR=build
 CORE_DIR=$(SRC_DIR)/core
 
-CORE = timer32 \
-	   timer16 \
+CORE = timer \
        gpio \
 	   uart \
 	   system_LPC11xx \

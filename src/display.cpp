@@ -17,11 +17,11 @@ const uint8_t charset[64] = {
 // Index 62-63 : ' ', '-'
 0x00, 0x01};
 
-const uint8_t digit_port[4] = {0, 0, 0, 1};
-const uint8_t digit_pin[4] = {10, 8, 9, 0};
+const uint8_t digit_port[4] = {1, 0, 0, 1};
+const uint8_t digit_pin[4] = {8, 8, 10, 0};
 
-const uint8_t segment_port[8] = {1, 0, 0, 1, 1, 1, 0, 1};
-const uint8_t segment_pin[8] = {3, 11, 6, 4, 2, 1, 5, 5};
+const uint8_t segment_port[8] = {1, 1, 0, 1, 1, 1, 0, 1};
+const uint8_t segment_pin[8] = {3, 9, 5, 4, 2, 1, 11, 5};
 
 volatile char msg[4];
 uint8_t currentDigit;
@@ -54,7 +54,7 @@ void Display::Print(const char* m) {
   }
 
   if (autoShutdown != 0 && currentShutdown == 0) {
-    enable_timer16(TIMER16_1);
+    Timer::Enable(Timer::TIMER16_1);
   }
 }
 
@@ -67,25 +67,26 @@ void Display::Clear() {
   }
 }
 
-void Display::Refresh() {
+void Display::Refresh(Timer::Timer timer) {
+  Timer::ClearInterrupt(timer);
+  Clear();
+  uint8_t value = charset[msg[currentDigit]];
+  for (uint8_t j = 0; j < 8; j++) {
+    if (value & (0x01 << (7-j))) {
+      GPIO::SetValue(segment_port[j], segment_pin[j], 0);
+    }
+  }
+  GPIO::SetValue(digit_port[currentDigit], digit_pin[currentDigit], 1);
+
+  if (currentDigit++ >= 4) {
+    currentDigit = 0;
+  }
+
+  if (autoShutdown != 0 && currentShutdown++ > autoShutdown) {
+    currentShutdown = 0;
+    Timer::Disable(timer);
     Clear();
-    uint8_t value = charset[msg[currentDigit]];
-    for (uint8_t j = 0; j < 8; j++) {
-      if (value & (0x01 << (7-j))) {
-        GPIO::SetValue(segment_port[j], segment_pin[j], 0);
-      }
-    }
-    GPIO::SetValue(digit_port[currentDigit], digit_pin[currentDigit], 1);
-
-    if (currentDigit++ >= 4) {
-      currentDigit = 0;
-    }
-
-    if (autoShutdown != 0 && currentShutdown++ > autoShutdown) {
-      currentShutdown = 0;
-      disable_timer16(TIMER16_1);
-      Clear();
-    }
+  }
 }
 
 void Display::AutoShutdown(uint32_t shutdown) {
@@ -111,13 +112,13 @@ void Display::Init() {
   LPC_IOCON->PIO1_5  &= ~0x07;
 
   LPC_IOCON->PIO0_8  &= ~0x07;
-  LPC_IOCON->PIO0_9  &= ~0x07;
+  LPC_IOCON->PIO1_8  &= ~0x07;
+  LPC_IOCON->PIO1_9  &= ~0x07;
   LPC_IOCON->SWCLK_PIO0_10 &= ~0x07;
   LPC_IOCON->SWCLK_PIO0_10 |= 0x01;
   LPC_IOCON->R_PIO0_11  &= ~0x07;
   LPC_IOCON->R_PIO0_11  |= 0x01;
   LPC_IOCON->PIO0_5  &= ~0x07;
-  LPC_IOCON->PIO0_6  &= ~0x07;
 
   for (uint8_t i = 0; i < 4; i++) {
     GPIO::SetDirection(digit_port[i], digit_pin[i], 1);
@@ -130,11 +131,10 @@ void Display::Init() {
 
   currentDigit = 0;
   Print("    ");
-    // Enable Timer 16 - 1
-  //init_timer16(TIMER16_1, TIME_INTERVAL);
-  init_timer16(TIMER16_1, 0x3FFF);
-  enable_timer16(TIMER16_1);
-  set_timer16IRQHandler(TIMER16_1, Refresh, true);
+  // Enable Timer 16 - 1
+  Timer::Init(Timer::TIMER16_1, 0x3FFF);
+  Timer::Enable(Timer::TIMER16_1);
+  Timer::SetIRQHandler(Timer::TIMER16_1, Refresh);
   autoShutdown = 0;
   currentShutdown = 0;
 }

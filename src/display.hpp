@@ -3,7 +3,7 @@
 
 #include "core/LPC11xx.h"
 #include "core/gpio.h"
-#include "core/timer16.h"
+#include "core/timer.h"
 
 
 namespace Display {
@@ -18,7 +18,7 @@ void Init();
 void Clear();
 void Print(const char* msg);
 void Print(uint8_t c, uint8_t position);
-void Refresh();
+void Refresh(Timer::Timer timer);
 void AutoShutdown(uint32_t shutdown);
 
 }  // namespace Display

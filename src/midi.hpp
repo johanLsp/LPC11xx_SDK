@@ -1,6 +1,5 @@
 #include "core/LPC11xx.h"
 #include "core/gpio.h"
-#include "core/timer32.h"
 #include "core/uart.h"
 #include "display.hpp"
 
