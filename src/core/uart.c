@@ -1,33 +1,25 @@
 #include "LPC11xx.h"
 #include "type.h"
 #include "uart.h"
-#include "gpio.h"
-#include "timer32.h"
 
 namespace UART {
-
 volatile uint32_t RegVal;
 volatile uint32_t Status;
 volatile uint8_t  TxEmpty = 1;
 volatile uint8_t  Buffer[BUFSIZE];
 volatile uint32_t Count = 0;
-volatile bool uart_handler_set = false;
-void (*uart_handler)(void);
-
-void SetIRQHandler(void(*handler)(void)) {
-  uart_handler = handler;
-  uart_handler_set = true;
+Handler handler_;
 }
 
 void UART_IRQHandler(void) {
-  if (uart_handler_set) {
-    uart_handler();
-  } else {
-    DefaultIRQHandler();
-  }
+  UART::handler_();
 }
 
-void DefaultIRQHandler(void) {
+void UART::SetIRQHandler(Handler handler) {
+  handler_ = handler;
+}
+
+void UART::DefaultIRQHandler() {
   uint8_t IIRValue = LPC_UART->IIR;
 
   // skip pending bit in IIR
@@ -80,14 +72,16 @@ void DefaultIRQHandler(void) {
   return;
 }
 
-void Init(uint32_t baudrate) {
+void UART::Init(uint32_t baudrate) {
   uint32_t Fdiv;
   TxEmpty = 1;
   Count = 0;
 
+  SetIRQHandler(DefaultIRQHandler);
+
   NVIC_DisableIRQ(UART_IRQn);
   // Enable IOCON clock
-  LPC_SYSCON->SYSAHBCLKCTRL |= (1<<16);
+  LPC_SYSCON->SYSAHBCLKCTRL |= SYSAHBCLKCTRL_IOCON;
   // UART I/O config
   // UART RXD
   LPC_IOCON->PIO1_6 &= ~0x07;
@@ -97,13 +91,13 @@ void Init(uint32_t baudrate) {
   LPC_IOCON->PIO1_7 |= 0x01;
 
   // Enable UART clock
-  LPC_SYSCON->SYSAHBCLKCTRL |= (1<<12);
+  LPC_SYSCON->SYSAHBCLKCTRL |= SYSAHBCLKCTRL_UART;
   // Divided by 1
   LPC_SYSCON->UARTCLKDIV = 0x1;
 
   // 8 bits, no Parity, 1 Stop bit
   LPC_UART->LCR = LCR::WLS8 | LCR::DLAB;
-  Fdiv = ((SystemCoreClock/LPC_SYSCON->UARTCLKDIV)/16)/baudrate ;
+  Fdiv = ((SystemCoreClock/LPC_SYSCON->UARTCLKDIV)/16)/baudrate;
   LPC_UART->DLM = Fdiv / 256;
   LPC_UART->DLL = Fdiv % 256;
   LPC_UART->FDR = 0x10;
@@ -116,7 +110,8 @@ void Init(uint32_t baudrate) {
   RegVal = LPC_UART->LSR;
 
   // Ensure a clean start, no data in either TX or RX FIFO.
-  while (( LPC_UART->LSR & (LSR_THRE|LSR_TEMT)) != (LSR_THRE|LSR_TEMT) ) continue;
+  while (( LPC_UART->LSR & (LSR_THRE|LSR_TEMT)) != (LSR_THRE|LSR_TEMT) )
+    continue;
   while ( LPC_UART->LSR & LSR_RDR ) {
     // Dump data from RX FIFO
     RegVal = LPC_UART->RBR;
@@ -128,7 +123,7 @@ void Init(uint32_t baudrate) {
   return;
 }
 
-void Send(uint8_t *BufferPtr, uint32_t Length) {
+void UART::Send(uint8_t *BufferPtr, uint32_t Length) {
   while ( Length != 0 ) {
     while ( !(LPC_UART->LSR & LSR_THRE) ) continue;
     LPC_UART->THR = *BufferPtr;
@@ -137,5 +132,3 @@ void Send(uint8_t *BufferPtr, uint32_t Length) {
   }
   return;
 }
-
-}  // namespace UART

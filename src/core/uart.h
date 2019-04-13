@@ -1,34 +1,21 @@
-/****************************************************************************
- *   $Id:: uart.h 8216 2011-10-06 17:50:47Z usb00423                        $
- *   Project: NXP LPC11xx software example
- *
- *   Description:
- *     This file contains definition and prototype for UART configuration.
- *
- ****************************************************************************
- * Software that is described herein is for illustrative purposes only
- * which provides customers with programming information regarding the
- * products. This software is supplied "AS IS" without any warranties.
- * NXP Semiconductors assumes no responsibility or liability for the
- * use of the software, conveys no license or title under any patent,
- * copyright, or mask work right to the product. NXP Semiconductors
- * reserves the right to make changes in the software without
- * notification. NXP Semiconductors also make no representation or
- * warranty that such application will be suitable for the specified
- * use without further testing or modification.
-****************************************************************************/
 #ifndef SRC_CORE_UART_H_
 #define SRC_CORE_UART_H_
 
-extern "C" void UART_IRQHandler(void);
-namespace UART {
+#include "LPC11xx.h"
 
 #define BUFSIZE         64
-#define AUTOBAUD_ENABLE 0
-#define FDR_CALIBRATION 0
+
+extern "C" void UART_IRQHandler(void);
+namespace UART {
+typedef void (*Handler)();
+
+void SetIRQHandler(Handler handler);
+void DefaultIRQHandler();
+
+void Init(uint32_t Baudrate);
+void Send(uint8_t *BufferPtr, uint32_t Length);
+
 #define RS485_ENABLED   0
-#define TX_INTERRUPT    0
-#define MODEM_TEST      0
 
 #define IER_RBR         (0x01<<0)
 #define IER_THRE        (0x01<<1)
@@ -84,11 +71,6 @@ enum RS485 {
   DCTRL = 16,
   OINV = 32
 };
-
-void Init(uint32_t Baudrate);
-void Send(uint8_t *BufferPtr, uint32_t Length);
-void SetIRQHandler(void(*handler)(void));
-void DefaultIRQHandler(void);
 
 }  // namespace UART
 
