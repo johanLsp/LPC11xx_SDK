@@ -5,6 +5,7 @@
 #include "core/timer.h"
 #include "core/uart.h"
 
+#include "dac.hpp"
 #include "display.hpp"
 #include "midi.hpp"
 
@@ -25,6 +26,8 @@ int main(void) {
   // 200 * 5ms
   Display::AutoShutdown(1000);
   Midi::Init();
+  DAC::Init();
+
   // Flash LED to notify startup
   GPIO::SetValue(GPIO::PORT0, 7, 1);
   Timer::DelayMs(Timer::TIMER32_0, 100);
@@ -41,7 +44,12 @@ int main(void) {
   Display::Print("----");
   Timer::DelayMs(Timer::TIMER32_0, 100);
 
-
+  while (true) {
+    for (uint8_t i = 0; i < 12; i++) {
+      DAC::Set(DAC::DAC_A, 4095);
+      Timer::DelayMs(Timer::TIMER32_0, 1000);
+    }
+  }
 
   // Disable unused clocks
   LPC_SYSCON->SYSAHBCLKCTRL &= ~SYSAHBCLKCTRL_IOCON;
