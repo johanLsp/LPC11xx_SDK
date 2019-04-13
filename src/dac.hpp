@@ -12,6 +12,6 @@ void Init();
 void Set(DAC dac, uint32_t value);
 void Send(uint16_t* buffer, uint32_t size);
 
-}  // namespace Dac
+}  // namespace DAC
 
 #endif  // SRC_DAC_HPP_

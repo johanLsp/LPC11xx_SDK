@@ -1,44 +1,37 @@
-/****************************************************************************
- *   $Id:: ssp.h 5325 2010-10-20 23:41:47Z usb00423                         $
- *   Project: NXP LPC11xx SSP example
- *
- *   Description:
- *     This file contains SSP code header definition.
- *
- ****************************************************************************
- * Software that is described herein is for illustrative purposes only
- * which provides customers with programming information regarding the
- * products. This software is supplied "AS IS" without any warranties.
- * NXP Semiconductors assumes no responsibility or liability for the
- * use of the software, conveys no license or title under any patent,
- * copyright, or mask work right to the product. NXP Semiconductors
- * reserves the right to make changes in the software without
- * notification. NXP Semiconductors also make no representation or
- * warranty that such application will be suitable for the specified
- * use without further testing or modification.
-****************************************************************************/
-#ifndef __SSP_H__
-#define __SSP_H__
+#ifndef SRC_CORE_SSP_H_
+#define SRC_CORE_SSP_H_
 
-/* There are there modes in SSP: loopback, master or slave. */
-/* Here are the combination of all the tests. 
-(1) LOOPBACK test:		LOOPBACK_MODE=1, TX_RX_ONLY=0, USE_CS=1;
-(2) Serial EEPROM test:	LOOPBACK_MODE=0, TX_RX_ONLY=0, USE_CS=0; (default)
-(3) TX(Master) Only:	LOOPBACK_MODE=0, SSP_SLAVE=0, TX_RX_ONLY=1, USE_CS=1;
-(4) RX(Slave) Only:		LOOPBACK_MODE=0, SSP_SLAVE=1, TX_RX_ONLY=1, USE_CS=1 */
+#include "LPC11xx.h"
 
-#define LOOPBACK_MODE   0		/* 1 is loopback, 0 is normal operation. */
-#define SSP_SLAVE       0		/* 1 is SLAVE mode, 0 is master mode */
-#define TX_RX_ONLY      0		/* 1 is TX or RX only depending on SSP_SLAVE
-								flag, 0 is either loopback mode or communicate
-								with a serial EEPROM. */
+extern "C" void SSP0_IRQHandler (void);
+extern "C" void SSP1_IRQHandler (void);
 
-/* if USE_CS is zero, set SSEL as GPIO that you have total control of the sequence */
-/* When test serial SEEPROM(LOOPBACK_MODE=0, TX_RX_ONLY=0), set USE_CS to 0. */
-/* When LOOPBACK_MODE=1 or TX_RX_ONLY=1, set USE_CS to 1. */
+namespace SSP {
+enum SSP {SSP0 = 0, SSP1};
+static LPC_SSP_TypeDef* LPC_SSP[2] = {LPC_SSP0, LPC_SSP1};
+typedef void (*Handler)(SSP);
 
-#define USE_CS          0
-#define SSP_DEBUG       0
+struct SSP_Config {
+  bool slave;
+  bool loopback;
+  bool use_CS;
+  bool use_MISO;
+  bool use_MOSI;
+  uint8_t frame_size;
+};
+
+void SetIRQHandler(SSP ssp, Handler handler);
+void DefaultIRQHandler(SSP ssp);
+
+void Init(SSP ssp, SSP_Config config);
+void IOConfig(SSP ssp, SSP_Config config);
+void SetFrameSize(SSP ssp, uint8_t size);
+
+void Send(SSP ssp, uint8_t *buffer, uint32_t size);
+void Receive(SSP ssp, uint8_t *buffer, uint32_t size);
+
+
+}  // namespace SSP
 
 /* SPI read and write buffer size */
 #define SSP_BUFSIZE     16
@@ -49,7 +42,7 @@
 
 /* Port0.2 is the SSP select pin */
 #define SSP0_SEL        (0x1<<2)
-	
+    
 /* SSP Status register */
 #define SSPSR_TFE       (0x1<<0)
 #define SSPSR_TNF       (0x1<<1) 
@@ -106,15 +99,5 @@
 
 /* If RX_INTERRUPT is enabled, the SSP RX will be handled in the ISR
 SSPReceive() will not be needed. */
-extern void SSP0_IRQHandler (void);
-extern void SSP1_IRQHandler (void);
-extern void SSP_IOConfig( uint8_t portNum );
-extern void SSP_Init( uint8_t portNum );
-extern void SSP_Send( uint8_t portNum, uint8_t *Buf, uint32_t Length );
-extern void SSP_Receive( uint8_t portNum, uint8_t *buf, uint32_t Length );
 
-#endif  /* __SSP_H__ */
-/*****************************************************************************
-**                            End Of File
-******************************************************************************/
-
+#endif  // SRC_CORE_SSP_H_

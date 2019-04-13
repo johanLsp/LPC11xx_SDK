@@ -3,43 +3,15 @@
 #include "dac.hpp"
 #include "display.hpp"
 
-namespace DAC {
-}
-
 void DAC::Init() {
-  // IO Config
-  LPC_SYSCON->PRESETCTRL |= (0x1<<0);
-  LPC_SYSCON->SYSAHBCLKCTRL |= (0x1<<11);
-  // Divided by2.
-  LPC_SYSCON->SSP0CLKDIV = 0x02;
-  // SSP MISO
-  // LPC_IOCON->PIO0_8 &= ~0x07;
-  // LPC_IOCON->PIO0_8 |= 0x01;
-  // SSP MOSI
-  LPC_IOCON->PIO0_9 &= ~0x07;
-  LPC_IOCON->PIO0_9 |= 0x01;
-  // SSP SCK
-  LPC_IOCON->SCK_LOC = 0x02;
-  LPC_IOCON->PIO0_6 = 0x02;
-
-  // SSP CS
-  LPC_IOCON->PIO0_2 &= ~0x07;
-  LPC_IOCON->PIO0_2 |= 0x01;
-
-  // Set DSS data to 16-bit, Frame format SPI, CPOL = 0, CPHA = 0, and SCR is 15
-  LPC_SSP0->CR0 = 0x070F;
-  // SSPCPSR clock prescale register, master mode, minimum divisor is 0x02
-  LPC_SSP0->CPSR = 0x2;
-
-  // Enable the SSP Interrupt
-  NVIC_EnableIRQ(SSP0_IRQn);
-
-  // Device select as master, SSP Enabled
-  // Master mode
-  LPC_SSP0->CR1 = SSPCR1_SSE;
-  // Set SSPINMS registers to enable interrupts
-  // enable all error related interrupts
-  LPC_SSP0->IMSC = SSPIMSC_RORIM | SSPIMSC_RTIM;
+  SSP::SSP_Config config;
+  config.slave = false;
+  config.loopback = false;
+  config.use_CS = true;
+  config.use_MISO = false;
+  config.use_MOSI = true;
+  config.frame_size = 16;
+  SSP::Init(SSP::SSP0, config);
   Set(DAC_A, 0);
 }
 
@@ -50,12 +22,10 @@ void DAC::Set(DAC dac, uint32_t value) {
     value /= 2;
     gain = 0;
   }
-
   uint8_t shutdown = 1;
   if (value == 0) {
     shutdown = 0;
   }
-
   command = value;
   // Select DAC A:0, B:1
   command |= dac << 15;

@@ -46,6 +46,7 @@ CORE_DIR=$(SRC_DIR)/core
 CORE = timer \
        gpio \
 	   uart \
+	   ssp \
 	   system_LPC11xx \
 	   core_cm0 \
 	   cr_startup_lpc11
