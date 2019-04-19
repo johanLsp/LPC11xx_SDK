@@ -1,111 +1,125 @@
 #include "LPC11xx.h"
 #include "gpio.h"
 
-volatile uint32_t counters[4] = {0, 0, 0, 0};
-volatile uint32_t interrupts[4]  = {0, 0, 0, 0};
-
-void PIOINT0_IRQHandler(void) {
-  GPIO::DefaultIRQHandler(GPIO::PORT0);
+namespace GPIO {
+// GPIO has up to 4 ports, 12 pins per port.
+Handler handler_[4][12];
 }
 
-void PIOINT1_IRQHandler(void) {
-  GPIO::DefaultIRQHandler(GPIO::PORT1);
+void PIOINT0_IRQHandler() {
+  GPIO::DispatchInterrupt(GPIO::PORT0);
 }
 
-void PIOINT2_IRQHandler(void) {
-  GPIO::DefaultIRQHandler(GPIO::PORT2);
+void PIOINT1_IRQHandler() {
+  GPIO::DispatchInterrupt(GPIO::PORT1);
 }
 
-void PIOINT3_IRQHandler(void) {
-  GPIO::DefaultIRQHandler(GPIO::PORT3);
+void PIOINT2_IRQHandler() {
+  GPIO::DispatchInterrupt(GPIO::PORT2);
 }
 
-void GPIO::DefaultIRQHandler(uint8_t port) {
-  counters[port]++;
-  uint32_t regVal = GPIO::IntStatus(port, 1);
-  if (regVal) {
-    interrupts[port]++;
-    GPIO::IntClear(port, 1);
+void PIOINT3_IRQHandler() {
+  GPIO::DispatchInterrupt(GPIO::PORT3);
+}
+
+void GPIO::DispatchInterrupt(Port port) {
+  for (uint32_t i = 0; i < 12; i++) {
+    Pin pin{port, i};
+    if (InterruptStatus(pin))
+    handler_[port][i](pin);
   }
-  return;
 }
 
-void GPIO::Init() {
+void GPIO::SetIRQHandler(Pin pin, Handler handler) {
+  handler_[pin.port][pin.pin] = handler;
+}
+
+void GPIO::DefaultIRQHandler(Pin pin) {
+  ClearInterrupt(pin);
+}
+
+void GPIO::Init(Port port) {
   // enable IOCON clock
-  LPC_SYSCON->SYSAHBCLKCTRL |= (1<<16);
+  LPC_SYSCON->SYSAHBCLKCTRL |= SYSAHBCLKCTRL_IOCON;
   // Enable AHB clock to the GPIO domain.
-  LPC_SYSCON->SYSAHBCLKCTRL |= (1<<6);
-
+  LPC_SYSCON->SYSAHBCLKCTRL |= SYSAHBCLKCTRL_GPIO;
   // Set up NVIC when I/O pins are configured as external interrupts.
-  NVIC_EnableIRQ(EINT0_IRQn);
-  NVIC_EnableIRQ(EINT1_IRQn);
-  NVIC_EnableIRQ(EINT2_IRQn);
-  NVIC_EnableIRQ(EINT3_IRQn);
+  // Enable the TIMER0 Interrupt
+  IRQn_Type irq = static_cast<IRQn_Type>(EINT0_IRQn + port);
+  NVIC_EnableIRQ(irq);
   return;
 }
 
 
-uint32_t GPIO::GetValue(uint32_t port, uint32_t bit) {
+uint32_t GPIO::GetValue(Pin pin) {
   uint32_t regVal = 0;
-  if (bit < 0x20) {
-    if (LPC_GPIO[port]->DATA & (0x1 << bit)) {
+  if (pin.pin < 0x20) {
+    if (LPC_GPIO[pin.port]->DATA & (0x1 << pin.pin)) {
       regVal = 1;
     }
-  } else if (bit == 0xFF) {
-    regVal = LPC_GPIO[port]->DATA;
+  } else if (pin.pin == 0xFF) {
+    regVal = LPC_GPIO[pin.port]->DATA;
   }
   return regVal;
 }
 
-void GPIO::SetValue(uint32_t port, uint32_t bit, uint32_t value) {
-  LPC_GPIO[port]->MASKED_ACCESS[(1 << bit)] = (value << bit);
+void GPIO::SetValue(Pin pin, uint32_t value) {
+  LPC_GPIO[pin.port]->MASKED_ACCESS[(1 << pin.pin)] = (value << pin.pin);
 }
 
-void GPIO::SetDirection(uint32_t port, uint32_t bit, uint32_t direction) {
+void GPIO::SetDirection(Pin pin, uint32_t direction) {
   if (direction) {
-    LPC_GPIO[port]->DIR |= 1 << bit;
+    LPC_GPIO[pin.port]->DIR |= 1 << pin.pin;
   } else {
-    LPC_GPIO[port]->DIR &= ~(1 << bit);
+    LPC_GPIO[pin.port]->DIR &= ~(1 << pin.pin);
   }
 }
 
-void GPIO::SetInterrupt(uint32_t port, uint32_t bit, uint32_t sense,
-                        uint32_t single, uint32_t event) {
-  if (sense == 0) {
+void GPIO::SetInterrupt(Pin pin, bool level, bool single, bool event) {
+  Port port = pin.port;
+  uint32_t bit = pin.pin;
+
+  // Detect level
+  if (level) {
+    LPC_GPIO[port]->IS |= (0x1 << bit);
+  // Detec edge
+  } else {
     LPC_GPIO[port]->IS &= ~(0x1 << bit);
-    // single or double only applies when sense is 0(edge trigger).
-    if (single == 0) {
+    // One edge
+    if (single) {
       LPC_GPIO[port]->IBE &= ~(0x1 << bit);
+    // Both edges
     } else {
       LPC_GPIO[port]->IBE |= (0x1 << bit);
     }
-  } else {
-    LPC_GPIO[port]->IS |= (0x1 << bit);
-    if (event == 0) {
-      LPC_GPIO[port]->IEV &= ~(0x1 << bit);
-    } else {
-      LPC_GPIO[port]->IEV |= (0x1 << bit);
-    }
   }
-  return;
+
+  // Detect level high or rising edge.
+  if (event) {
+    LPC_GPIO[port]->IEV |= (0x1 << bit);
+  // Detect level low or falling edge.
+  } else {
+    LPC_GPIO[port]->IEV &= ~(0x1 << bit);
+  }
+
+  EnableInterrupt(pin);
 }
 
-void GPIO::IntEnable(uint32_t port, uint32_t bit) {
-  LPC_GPIO[port]->IE |= (0x1 << bit);
+void GPIO::EnableInterrupt(Pin pin) {
+  LPC_GPIO[pin.port]->IE |= (0x1 << pin.pin);
 }
 
-void GPIO::IntDisable(uint32_t port, uint32_t bit) {
-  LPC_GPIO[port]->IE &= ~(0x1 << bit);
+void GPIO::DisableInterrupt(Pin pin) {
+  LPC_GPIO[pin.port]->IE &= ~(0x1 << pin.pin);
 }
 
-uint32_t GPIO::IntStatus(uint32_t port, uint32_t bit) {
-  uint32_t regVal = 0;
-    if (LPC_GPIO[port]->MIS & (0x1 << bit)) {
-      regVal = 1;
+bool GPIO::InterruptStatus(Pin pin) {
+    if (LPC_GPIO[pin.port]->MIS & (0x1 << pin.pin)) {
+      return true;
     }
-  return regVal;
+  return false;
 }
 
-void GPIO::IntClear(uint32_t port, uint32_t bit) {
-  LPC_GPIO[port]->IC |= (0x1 << bit);
+void GPIO::ClearInterrupt(Pin pin) {
+  LPC_GPIO[pin.port]->IC |= (0x1 << pin.pin);
 }

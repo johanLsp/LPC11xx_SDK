@@ -78,8 +78,9 @@ void SSP::IOConfig(SSP ssp, SSP_Config config) {
       // SSP SSEL is a GPIO pin
       LPC_IOCON->PIO0_2 &= ~0x07;
       // Port0, bit 2 is set to GPIO output and high.
-      GPIO::SetDirection(GPIO::PORT0, 2, 1);
-      GPIO::SetValue(GPIO::PORT0, 2, 1);
+      GPIO::Pin ssel{GPIO::PORT0, 2};
+      GPIO::SetDirection(ssel, 1);
+      GPIO::SetValue(ssel, 1);
     }
   // SSP1
   } else {
@@ -112,8 +113,9 @@ void SSP::IOConfig(SSP ssp, SSP_Config config) {
       // SSP SSEL is a GPIO pin.
       LPC_IOCON->PIO2_0 &= ~0x07;
       // Port2, bit 0 is set to GPIO output and high.
-      GPIO::SetDirection(GPIO::PORT2, 0, 1);
-      GPIO::SetValue(GPIO::PORT2, 0, 1);
+      GPIO::Pin ssel{GPIO::PORT0, 2};
+      GPIO::SetDirection(ssel, 1);
+      GPIO::SetValue(ssel, 1);
     }
   }
 }

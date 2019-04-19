@@ -13,21 +13,27 @@ namespace GPIO {
 enum Port {PORT0 = 0, PORT1, PORT2, PORT3};
 static LPC_GPIO_TypeDef* LPC_GPIO[4] = {LPC_GPIO0, LPC_GPIO1,
                                        LPC_GPIO2, LPC_GPIO3};
+struct Pin {
+    const Port port;
+    const uint32_t pin;
+};
+typedef void (*Handler)(Pin);
 
-void DefaultIRQHandler(uint8_t port);
+void SetIRQHandler(Pin pin, Handler handler);
+void DefaultIRQHandler(Pin pin);
+void DispatchInterrupt(Port port);
 
-void Init();
+void Init(Port port);
 
-uint32_t GetValue(uint32_t port, uint32_t bit);
-void SetValue(uint32_t port, uint32_t bit, uint32_t value);
-void SetDirection(uint32_t port, uint32_t bit, uint32_t direction);
+uint32_t GetValue(Pin pin);
+void SetValue(Pin pin, uint32_t value);
+void SetDirection(Pin pin, uint32_t direction);
 
-void SetInterrupt(uint32_t port, uint32_t bit, uint32_t sense,
-                  uint32_t single, uint32_t event);
-void IntEnable(uint32_t port, uint32_t bit);
-void IntDisable(uint32_t port, uint32_t bit);
-uint32_t IntStatus(uint32_t port, uint32_t bit);
-void IntClear(uint32_t port, uint32_t bit);
+void SetInterrupt(Pin pin, bool level, bool single, bool event);
+void EnableInterrupt(Pin pin);
+void DisableInterrupt(Pin pin);
+void ClearInterrupt(Pin pin);
+bool InterruptStatus(Pin pin);
 
 }  // namespace GPIO
 

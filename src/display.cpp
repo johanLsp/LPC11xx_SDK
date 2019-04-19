@@ -17,11 +17,13 @@ const uint8_t charset[64] = {
 // Index 62-63 : ' ', '-'
 0x00, 0x01};
 
-const uint8_t digit_port[4] = {1, 0, 0, 1};
-const uint8_t digit_pin[4] = {8, 8, 10, 0};
+static const GPIO::Pin digit_pins_[4] = {{GPIO::PORT1, 8}, {GPIO::PORT0, 8},
+                                         {GPIO::PORT0, 10}, {GPIO::PORT1, 0}};
 
-const uint8_t segment_port[8] = {1, 1, 0, 1, 1, 1, 0, 1};
-const uint8_t segment_pin[8] = {3, 9, 5, 4, 2, 1, 11, 5};
+static const GPIO::Pin segment_pins_[8] = {{GPIO::PORT1, 3}, {GPIO::PORT1, 9},
+                                           {GPIO::PORT0, 5}, {GPIO::PORT1, 4},
+                                           {GPIO::PORT1, 2}, {GPIO::PORT1, 1},
+                                           {GPIO::PORT0, 11}, {GPIO::PORT1, 5}};
 
 volatile char msg[4];
 uint8_t currentDigit;
@@ -60,10 +62,10 @@ void Display::Print(const char* m) {
 
 void Display::Clear() {
   for (uint8_t i = 0; i < 4; i++) {
-    GPIO::SetValue(digit_port[i], digit_pin[i], 0);
+    GPIO::SetValue(digit_pins_[i], 0);
   }
   for (uint8_t i = 0; i < 8; i++) {
-    GPIO::SetValue(segment_port[i], segment_pin[i], 1);
+    GPIO::SetValue(segment_pins_[i], 1);
   }
 }
 
@@ -73,10 +75,10 @@ void Display::Refresh(Timer::Timer timer) {
   uint8_t value = charset[msg[currentDigit]];
   for (uint8_t j = 0; j < 8; j++) {
     if (value & (0x01 << (7-j))) {
-      GPIO::SetValue(segment_port[j], segment_pin[j], 0);
+      GPIO::SetValue(segment_pins_[j], 0);
     }
   }
-  GPIO::SetValue(digit_port[currentDigit], digit_pin[currentDigit], 1);
+  GPIO::SetValue(digit_pins_[currentDigit], 1);
 
   if (currentDigit++ >= 4) {
     currentDigit = 0;
@@ -121,12 +123,12 @@ void Display::Init() {
   LPC_IOCON->PIO0_5  &= ~0x07;
 
   for (uint8_t i = 0; i < 4; i++) {
-    GPIO::SetDirection(digit_port[i], digit_pin[i], 1);
-    GPIO::SetValue(digit_port[i], digit_pin[i], 1);
+    GPIO::SetDirection(digit_pins_[i], 1);
+    GPIO::SetValue(digit_pins_[i], 1);
   }
   for (uint8_t i = 0; i < 8; i++) {
-    GPIO::SetDirection(segment_port[i], segment_pin[i], 1);
-    GPIO::SetValue(segment_port[i], segment_pin[i], 1);
+    GPIO::SetDirection(segment_pins_[i], 1);
+    GPIO::SetValue(segment_pins_[i], 1);
   }
 
   currentDigit = 0;

@@ -16,7 +16,8 @@ int main(void) {
   Timer::Init(Timer::TIMER32_0, TIME_INTERVAL);
   Timer::Enable(Timer::TIMER32_0);
 
-  GPIO::Init();
+  GPIO::Init(GPIO::PORT0);
+  GPIO::Init(GPIO::PORT1);
 
   // Set pin 5 of GPIO1 as output.
   GPIO::SetDirection(GPIO::PORT0, 7, 1);

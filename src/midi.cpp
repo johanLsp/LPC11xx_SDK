@@ -22,12 +22,12 @@ void Midi::HandleCommand(uint8_t command, uint8_t note) {
   switch (command) {
     case 0x80:  /* note off */
       if (note == 0x30) {
-        GPIO::SetValue(GPIO::PORT0, 7, 0);
+        GPIO::SetValue(GPIO::Pin{GPIO::PORT0, 7}, 0);
       }
       break;
     case 0x90:  /* note on */
       if (note == 0x30) {
-        GPIO::SetValue(GPIO::PORT0, 7, 1);
+        GPIO::SetValue(GPIO::Pin{GPIO::PORT0, 7}, 1);
       }
       break;
     case 0xE0:  /* pitch bend */
