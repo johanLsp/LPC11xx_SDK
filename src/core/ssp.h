@@ -8,7 +8,6 @@ extern "C" void SSP1_IRQHandler (void);
 
 namespace SSP {
 enum SSP {SSP0 = 0, SSP1};
-static LPC_SSP_TypeDef* LPC_SSP[2] = {LPC_SSP0, LPC_SSP1};
 typedef void (*Handler)(SSP);
 
 struct SSP_Config {

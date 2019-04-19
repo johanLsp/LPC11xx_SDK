@@ -1,7 +1,7 @@
 #include "display.hpp"
 
 // Declare arrays as const to flash them to memory
-
+namespace Display {
 // Index 10 : ' '
 const uint8_t charset[64] = {
 // Index 0-9 : '0' -> '9'
@@ -30,6 +30,7 @@ uint8_t currentDigit;
 
 uint32_t autoShutdown;
 uint32_t currentShutdown;
+}
 
 void Display::Print(const char* m) {
   for (int i = 0; i < 4; i++) {
@@ -97,9 +98,9 @@ void Display::AutoShutdown(uint32_t shutdown) {
 }
 
 void Display::Init() {
-  LPC_SYSCON->SYSAHBCLKCTRL |= (1<<16); // enable IOCON
-  /* Enable AHB clock to the GPIO domain. */
-  LPC_SYSCON->SYSAHBCLKCTRL |= (1<<6);
+    // Enable AHB clock to the GPIO qnd IOCON domains.
+  LPC_SYSCON->SYSAHBCLKCTRL |= SYSAHBCLKCTRL_IOCON;
+  LPC_SYSCON->SYSAHBCLKCTRL |= SYSAHBCLKCTRL_GPIO;
 
   LPC_IOCON->R_PIO1_0  &= ~0x07;
   LPC_IOCON->R_PIO1_0  |= 0x01;

@@ -3,10 +3,12 @@
 
 #include "midi.hpp"
 
+namespace Midi {
 static volatile uint8_t midibuf[3];
 static volatile uint8_t midibytesleft = 0;
 static volatile uint8_t currentPos = 0;
 static volatile uint8_t num_bytes = 0;
+}
 
 void Midi::Print() {
   char msg[4];
@@ -43,9 +45,7 @@ void Midi::Init() {
 }
 
 void Midi::ReceiveHandler() {
-  // get the received byte and clear the interrupt
-  //uint8_t IIRValue = LPC_UART->IIR;
-  //uint8_t LSRValue = LPC_UART->LSR;
+  // Get the received byte and clear the interrupt.
   uint8_t byte = LPC_UART->RBR;
 
   // command byte

@@ -30,7 +30,7 @@
 #ifndef __LPC11xx_H__
 #define __LPC11xx_H__
 
-#include <stdint.h>
+#include "type.h"
 
 #ifdef __cplusplus
  extern "C" {

@@ -11,8 +11,6 @@ extern "C" void PIOINT3_IRQHandler(void);
 namespace GPIO {
 
 enum Port {PORT0 = 0, PORT1, PORT2, PORT3};
-static LPC_GPIO_TypeDef* LPC_GPIO[4] = {LPC_GPIO0, LPC_GPIO1,
-                                       LPC_GPIO2, LPC_GPIO3};
 struct Pin {
     const Port port;
     const uint32_t pin;

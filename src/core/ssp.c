@@ -2,22 +2,23 @@
 #include "gpio.h"
 #include "ssp.h"
 
+namespace SSP {
+static LPC_SSP_TypeDef* const LPC_SSP[2] = {LPC_SSP0, LPC_SSP1};
 // Statistics of all the interrupts.
 volatile uint32_t RX_stats_[2];
 volatile uint32_t RX_overrun_stats_[2];
 volatile uint32_t RX_timeout_stats_[2];
-
 volatile bool loopback_[2];
 volatile bool slave_[2];
-
-SSP::Handler handler_[2];
+Handler handler_[2];
+}
 
 void SSP0_IRQHandler() {
-  handler_[SSP::SSP0](SSP::SSP0);
+  SSP::handler_[SSP::SSP0](SSP::SSP0);
 }
 
 void SSP1_IRQHandler() {
-  handler_[SSP::SSP1](SSP::SSP1);
+  SSP::handler_[SSP::SSP1](SSP::SSP1);
 }
 
 
@@ -136,6 +137,7 @@ void SSP::Init(SSP ssp, SSP_Config config) {
   for (int i = 0; i < FIFOSIZE; i++) {
     // Clear the RxFIFO.
     uint8_t Dummy = LPC_SSP[ssp]->DR;
+    UNUSED(Dummy);
   }
 
   // Enable the SSP Interrupt.
@@ -179,7 +181,7 @@ void SSP::SetFrameSize(SSP ssp, uint8_t size) {
 }
 
 void SSP::Send(SSP ssp, uint8_t *buffer, uint32_t size) {
-  for (int i = 0; i < size; i++) {
+  for (uint32_t i = 0; i < size; i++) {
     // Move on only if NOT busy and TX FIFO not full.
     while ((LPC_SSP[ssp]->SR & (SSPSR_TNF|SSPSR_BSY)) != SSPSR_TNF) continue;
     LPC_SSP[ssp]->DR = *buffer;
@@ -194,6 +196,7 @@ void SSP::Send(SSP ssp, uint8_t *buffer, uint32_t size) {
       // on MISO. Otherwise, when SSP0Receive() is called, previous data byte
       // is left in the FIFO.
       uint8_t Dummy = LPC_SSP[ssp]->DR;
+      UNUSED(Dummy);
     }
   }
 }

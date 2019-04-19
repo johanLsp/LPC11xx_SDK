@@ -27,6 +27,8 @@
 #ifndef __TYPE_H__
 #define __TYPE_H__
 
+#define UNUSED(expr) do { (void)(expr); } while (0)
+
 #if defined (__GNUC__)
 #include <stdint.h>
 

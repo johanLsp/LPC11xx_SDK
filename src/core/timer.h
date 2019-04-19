@@ -17,8 +17,6 @@ namespace Timer {
 #endif
 
 enum Timer {TIMER16_0 = 0, TIMER16_1, TIMER32_0, TIMER32_1};
-static LPC_TMR_TypeDef* LPC_TMR[4] = {LPC_TMR16B0, LPC_TMR16B1,
-                                       LPC_TMR32B0, LPC_TMR32B1};
 typedef void (*Handler)(Timer);
 
 void SetIRQHandler(Timer timer, Handler handler);

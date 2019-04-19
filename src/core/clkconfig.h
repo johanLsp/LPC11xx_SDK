@@ -29,9 +29,10 @@
 #define CLKOUTCLK_SRC_WDT_OSC       2
 #define CLKOUTCLK_SRC_MAIN_CLK      3
 
-void WDT_CLK_Setup(uint32_t timer_num);
-void CLKOUT_Setup(uint32_t timer_num);
-#endif /* end __CLKCONFIG_H */
-/*****************************************************************************
-**                            End Of File
-******************************************************************************/
+namespace Clock {
+
+void WDT_CLK_Setup(uint32_t clksrc);
+void CLKOUT_Setup(uint32_t clksrc);
+
+}  // namespace Clock
+#endif  //_CLKCONFIG_H 

@@ -2,6 +2,8 @@
 #include "gpio.h"
 
 namespace GPIO {
+static LPC_GPIO_TypeDef* const LPC_GPIO[4] = {LPC_GPIO0, LPC_GPIO1,
+                                              LPC_GPIO2, LPC_GPIO3};
 // GPIO has up to 4 ports, 12 pins per port.
 Handler handler_[4][12];
 }

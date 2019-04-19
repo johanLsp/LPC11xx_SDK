@@ -1,6 +1,8 @@
 #include "timer.h"
 
 namespace Timer {
+static  LPC_TMR_TypeDef* const LPC_TMR[4] = {LPC_TMR16B0, LPC_TMR16B1,
+                                            LPC_TMR32B0, LPC_TMR32B1};
 volatile uint32_t counter_[4];
 volatile uint32_t capture_[4];
 volatile uint32_t period_[4];
