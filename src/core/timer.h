@@ -1,3 +1,4 @@
+// Copyright 2019 Johan Lasperas
 #ifndef SRC_CORE_TIMER_H_
 #define SRC_CORE_TIMER_H_
 

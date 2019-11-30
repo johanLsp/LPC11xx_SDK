@@ -1,7 +1,6 @@
 // Copyright 2019 Johan Lasperas
 
 #include "dac.hpp"
-#include "display.hpp"
 
 void DAC::Init() {
   SSP::SSP_Config config;
@@ -18,7 +17,7 @@ void DAC::Init() {
 void DAC::Set(DAC dac, uint32_t value) {
   uint16_t command;
   uint8_t gain = 1;
-  if (value >= 4096) {
+  if (value >= kMaxValue) {
     value /= 2;
     gain = 0;
   }
@@ -49,5 +48,6 @@ void DAC::Send(uint16_t* buffer, uint32_t size) {
     // on MISO. Otherwise, when SSP0Receive() is called, previous data byte
     // is left in the FIFO.
     uint8_t Dummy = LPC_SSP0->DR;
+    UNUSED(Dummy);
   }
 }

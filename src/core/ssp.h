@@ -1,10 +1,11 @@
+// Copyright 2019 Johan Lasperas
 #ifndef SRC_CORE_SSP_H_
 #define SRC_CORE_SSP_H_
 
 #include "LPC11xx.h"
 
-extern "C" void SSP0_IRQHandler (void);
-extern "C" void SSP1_IRQHandler (void);
+extern "C" void SSP0_IRQHandler();
+extern "C" void SSP1_IRQHandler();
 
 namespace SSP {
 enum SSP {SSP0 = 0, SSP1};
@@ -83,14 +84,6 @@ void Receive(SSP ssp, uint8_t *buffer, uint32_t size);
 /* SSP0 Interrupt clear register */
 #define SSPICR_RORIC    (0x1<<0)
 #define SSPICR_RTIC     (0x1<<1)
-
-/* ATMEL SEEPROM command set */
-#define WREN            0x06		/* MSB A8 is set to 0, simplifying test */
-#define WRDI            0x04
-#define RDSR            0x05
-#define WRSR            0x01
-#define READ            0x03
-#define WRITE           0x02
 
 /* RDSR status bit definition */
 #define RDSR_RDY        0x01

@@ -1,3 +1,4 @@
+// Copyright 2019 Johan Lasperas
 #ifndef SRC_CORE_GPIO_H_
 #define SRC_CORE_GPIO_H_
 
@@ -19,18 +20,16 @@ typedef void (*Handler)(Pin);
 
 void SetIRQHandler(Pin pin, Handler handler);
 void DefaultIRQHandler(Pin pin);
-void DispatchInterrupt(Port port);
 
 void Init(Port port);
 
 uint32_t GetValue(Pin pin);
 void SetValue(Pin pin, uint32_t value);
-void SetDirection(Pin pin, uint32_t direction);
+void SetDirection(const Pin& pin, uint32_t direction);
 
 void SetInterrupt(Pin pin, bool level, bool single, bool event);
 void EnableInterrupt(Pin pin);
 void DisableInterrupt(Pin pin);
-void ClearInterrupt(Pin pin);
 bool InterruptStatus(Pin pin);
 
 }  // namespace GPIO

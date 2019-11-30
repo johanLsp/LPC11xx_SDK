@@ -1,3 +1,4 @@
+// Copyright 2019 Johan Lasperas
 #include "LPC11xx.h"
 #include "gpio.h"
 
@@ -6,6 +7,9 @@ static LPC_GPIO_TypeDef* const LPC_GPIO[4] = {LPC_GPIO0, LPC_GPIO1,
                                               LPC_GPIO2, LPC_GPIO3};
 // GPIO has up to 4 ports, 12 pins per port.
 Handler handler_[4][12];
+
+void ClearInterrupt(Pin pin);
+void DispatchInterrupt(Port port);
 }
 
 void PIOINT0_IRQHandler() {
@@ -27,8 +31,10 @@ void PIOINT3_IRQHandler() {
 void GPIO::DispatchInterrupt(Port port) {
   for (uint32_t i = 0; i < 12; i++) {
     Pin pin{port, i};
-    if (InterruptStatus(pin))
-    handler_[port][i](pin);
+    if (InterruptStatus(pin)) {
+      handler_[port][i](pin);
+      ClearInterrupt(pin);
+    }
   }
 }
 
@@ -37,7 +43,6 @@ void GPIO::SetIRQHandler(Pin pin, Handler handler) {
 }
 
 void GPIO::DefaultIRQHandler(Pin pin) {
-  ClearInterrupt(pin);
 }
 
 void GPIO::Init(Port port) {
@@ -69,7 +74,7 @@ void GPIO::SetValue(Pin pin, uint32_t value) {
   LPC_GPIO[pin.port]->MASKED_ACCESS[(1 << pin.pin)] = (value << pin.pin);
 }
 
-void GPIO::SetDirection(Pin pin, uint32_t direction) {
+void GPIO::SetDirection(const Pin& pin, uint32_t direction) {
   if (direction) {
     LPC_GPIO[pin.port]->DIR |= 1 << pin.pin;
   } else {

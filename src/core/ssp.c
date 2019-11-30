@@ -1,6 +1,6 @@
-#include "LPC11xx.h"			/* LPC11xx Peripheral Registers */
-#include "gpio.h"
+// Copyright 2019 Johan Lasperas
 #include "ssp.h"
+#include "gpio.h"
 
 namespace SSP {
 static LPC_SSP_TypeDef* const LPC_SSP[2] = {LPC_SSP0, LPC_SSP1};

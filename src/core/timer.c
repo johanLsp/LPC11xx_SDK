@@ -1,3 +1,4 @@
+// Copyright 2019 Johan Lasperas
 #include "timer.h"
 
 namespace Timer {
@@ -36,6 +37,9 @@ void Timer::Init(Timer timer, uint32_t timer_interval) {
   handler_[timer] = DefaultIRQHandler;
   LPC_SYSCON->SYSAHBCLKCTRL |= (SYSAHBCLKCTRL_CT16B0 << timer);
 
+  // Set prescaler to zero.
+  LPC_TMR[timer]->PR  = 0x0;
+
   LPC_TMR[timer]->MR0 = timer_interval;
 
   LPC_TMR[timer]->CCR = (0x1<<0)|(0x1<<2);
@@ -62,10 +66,12 @@ void Timer::Reset(Timer timer) {
 }
 
 void Timer::ClearInterrupt(Timer timer) {
-  if (LPC_TMR[timer]->IR & 0x1) {
-    // clear interrupt flag
-    LPC_TMR[timer]->IR = 1;
-    counter_[timer]++;
+  for (int match = 0; match < 4; match++) {
+    if (LPC_TMR[timer]->IR & (0x1 << match)) {
+      // clear interrupt flag
+      LPC_TMR[timer]->IR = (0x1 << match);
+      counter_[timer]++;
+    }
   }
   if (LPC_TMR[timer]->IR & (0x1 << 4)) {
     // clear interrupt flag
