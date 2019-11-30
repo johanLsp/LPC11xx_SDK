@@ -7,7 +7,7 @@
 
 #include "encoder.hpp"
 #include "dac.hpp"
-#include "display.hpp"
+#include "segment.hpp"
 #include "midi.hpp"
 
 int main(void) {
@@ -20,14 +20,14 @@ int main(void) {
   GPIO::Init(GPIO::PORT0);
   GPIO::Init(GPIO::PORT1);
 
-  Display::Init();
+  Segment::Init();
   // 200 * 5ms
-  Display::AutoShutdown(1000);
+  Segment::AutoShutdown(1000);
   Midi::Init();
   DAC::Init();
   Encoder::Init();
 
-  Display::Print("----");
+  Segment::Print("----");
   Timer::DelayMs(Timer::TIMER32_0, 100);
 
   // Disable unused clocks
@@ -43,5 +43,6 @@ int main(void) {
 
 
 void HardFault_Handler(void) {
+  Segment::Print("EEEE");
 }
 

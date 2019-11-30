@@ -1,7 +1,7 @@
-#include "display.hpp"
+#include "segment.hpp"
 
 // Declare arrays as const to flash them to memory
-namespace Display {
+namespace Segment {
 // Index 10 : ' '
 const uint8_t charset[64] = {
 // Index 0-9 : '0' -> '9'
@@ -23,16 +23,16 @@ static const GPIO::Pin digit_pins_[4] = {{GPIO::PORT1, 8}, {GPIO::PORT0, 8},
 static const GPIO::Pin segment_pins_[8] = {{GPIO::PORT1, 3}, {GPIO::PORT1, 9},
                                            {GPIO::PORT0, 5}, {GPIO::PORT1, 4},
                                            {GPIO::PORT1, 2}, {GPIO::PORT1, 1},
-                                           {GPIO::PORT0, 11}, {GPIO::PORT1, 5}};
+                                           {GPIO::PORT1, 8}, {GPIO::PORT1, 5}};
 
-volatile char msg[4];
+volatile uint8_t msg[4];
 uint8_t currentDigit;
 
 uint32_t autoShutdown;
 uint32_t currentShutdown;
-}
+}  // namespace Segment
 
-void Display::Print(const char* m) {
+void Segment::Print(const char* m) {
   for (int i = 0; i < 4; i++) {
     char c = m[i];
     if (c < 16) {
@@ -61,7 +61,7 @@ void Display::Print(const char* m) {
   }
 }
 
-void Display::Clear() {
+void Segment::Clear() {
   for (uint8_t i = 0; i < 4; i++) {
     GPIO::SetValue(digit_pins_[i], 0);
   }
@@ -70,7 +70,7 @@ void Display::Clear() {
   }
 }
 
-void Display::Refresh(Timer::Timer timer) {
+void Segment::Refresh(Timer::Timer timer) {
   Timer::ClearInterrupt(timer);
   Clear();
   uint8_t value = charset[msg[currentDigit]];
@@ -92,12 +92,12 @@ void Display::Refresh(Timer::Timer timer) {
   }
 }
 
-void Display::AutoShutdown(uint32_t shutdown) {
+void Segment::AutoShutdown(uint32_t shutdown) {
   autoShutdown = shutdown;
   currentShutdown = 0;
 }
 
-void Display::Init() {
+void Segment::Init() {
     // Enable AHB clock to the GPIO qnd IOCON domains.
   LPC_SYSCON->SYSAHBCLKCTRL |= SYSAHBCLKCTRL_IOCON;
   LPC_SYSCON->SYSAHBCLKCTRL |= SYSAHBCLKCTRL_GPIO;
@@ -119,8 +119,6 @@ void Display::Init() {
   LPC_IOCON->PIO1_9  &= ~0x07;
   LPC_IOCON->SWCLK_PIO0_10 &= ~0x07;
   LPC_IOCON->SWCLK_PIO0_10 |= 0x01;
-  LPC_IOCON->R_PIO0_11  &= ~0x07;
-  LPC_IOCON->R_PIO0_11  |= 0x01;
   LPC_IOCON->PIO0_5  &= ~0x07;
 
   for (uint8_t i = 0; i < 4; i++) {
