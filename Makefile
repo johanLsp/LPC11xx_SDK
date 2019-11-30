@@ -30,14 +30,20 @@ BAUD        = 115200
 ISPCLK = 12000
 #BAUD       = 9600
 FILENAME    = main
+LPC21ISP    = pc21isp
+LPC21ISP_OPTS = -control
 GCC         = arm-none-eabi-g++
 LD			= arm-none-eabi-ld
 OBJCP		= arm-none-eabi-objcopy
-#OPT			= -Wall -Os -std=c99 -nostartfiles -mcpu=$(DEVICE) -mthumb -Wl,-Map,output.map
-#OPT			= -Wall -Os -std=c99 -specs=nosys.specs -DUSE_OLD_STYLE_DATA_BSS_INIT -mcpu=$(DEVICE) -mthumb -Wl,-Map,output.map
-OPT			= -Wall -Os -std=c++11 -fno-exceptions -specs=nosys.specs -DUSE_OLD_STYLE_DATA_BSS_INIT -mcpu=$(DEVICE) -mthumb -Wl,-Map,output.map
 DEF			= -DCORE_M0 -DENABLE_UNTESTED_CODE
 
+CCFLAGS= -Wall  -std=c++11 -DUSE_OLD_STYLE_DATA_BSS_INIT -mcpu=$(DEVICE) -mthumb
+# Space optimization options
+CCFLAGS+= -Os -fno-exceptions -fno-rtti -flto -ffunction-sections -specs=nosys.specs
+# Generate the map output
+CCFLAGS+= -Wl,-Map,output.map
+
+LDFLAGS= -Wl,--as-needed -Wl,--gc-sections
 
 SRC_DIR=src
 BUILD_DIR=build
@@ -45,17 +51,15 @@ CORE_DIR=$(SRC_DIR)/core
 
 CORE = timer \
        gpio \
-	   uart \
-	   ssp \
-	   system_LPC11xx \
-	   core_cm0 \
-	   cr_startup_lpc11
+	     uart \
+	     ssp \
+	     i2c \
+	     adc \
+	     system_LPC11xx \
+	     core_cm0 \
+	     cr_startup_lpc11
 
-
-
-
-
-DIRS = .
+DIRS = . 
 SRC_DIRS = $(foreach dir, $(DIRS), $(addprefix $(SRC_DIR)/, $(dir)))
 TARGET_DIRS = $(foreach dir, $(DIRS), $(addprefix $(BUILD_DIR)/, $(dir)))
 
@@ -66,10 +70,10 @@ INCLUDES += $(addprefix -I, $(CORE_DIR))
 VPATH = $(SRC_DIRS) $(CORE_DIR)
 
 SRC=$(wildcard src/*.cpp)
-CORE_SRC=$(addprefix  $(CORE_DIR)/, $(addsuffix .c, $(CORE)))
-
-CORE_OBJS := $(subst $(SRC_DIR),$(BUILD_DIR),$(CORE_SRC:.c=.o))
 OBJS := $(subst $(SRC_DIR),$(BUILD_DIR),$(SRC:.cpp=.o))
+
+CORE_SRC=$(addprefix  $(CORE_DIR)/, $(addsuffix .c, $(CORE)))
+CORE_OBJS := $(subst $(SRC_DIR),$(BUILD_DIR),$(CORE_SRC:.c=.o))
 
 ELF=$(BUILD_DIR)/$(FILENAME).elf
 BIN=$(BUILD_DIR)/$(FILENAME).bin
@@ -80,15 +84,13 @@ LINKER_SCRIPT = lpc1114.ld
 all: clean build upload
 
 $(BUILD_DIR)/%.o: %.c
-	$(GCC) -c $(OPT) $(INCLUDES) $(DEF) $< -o $@
+	$(GCC) -c $(CCFLAGS) $(INCLUDES) $(DEF) $< -o $@
 
 $(BUILD_DIR)/%.o: $(SRC_DIR)/%.cpp
-	$(GCC) -c $(OPT) $(INCLUDES) $(DEF) $< -o $@
-	
+	$(GCC) -c $(CCFLAGS) $(INCLUDES) $(DEF) $< -o $@
+
 $(BUILD_DIR)/%.elf: $(CORE_OBJS) $(OBJS)
-#	$(GCC) $(OPT) $(LIBS) -nostartfiles $(OBJS) -o $@
-#	$(GCC) $(OPT) $(LIBS) -nostartfiles -T$(LINKER_SCRIPT) $(OBJS) -o $@
-	$(GCC) $(OPT) $(LIBS) -T$(LINKER_SCRIPT) $(CORE_OBJS) $(OBJS) -o $@
+	$(GCC) $(CCFLAGS) $(LIBS) -T$(LINKER_SCRIPT) $(LDFLAGS) $(CORE_OBJS) $(OBJS) -o $@
 
 %bin: %elf
 	$(OBJCP) -O binary -S $< $@
@@ -96,7 +98,7 @@ $(BUILD_DIR)/%.elf: $(CORE_OBJS) $(OBJS)
 build: $(CORE_OBJS) $(OBJS) $(ELF) $(BIN)
 
 upload: $(BIN)
-	lpc21isp -bin $(BIN) $(PORT) $(BAUD) $(ISPCLK)
+	$(LPC21ISP) $(LPC21ISP_OPTS) -bin $(BIN) $(PORT) $(BAUD) $(ISPCLK)
 
 clean:
 	rm -f $(CORE_OBJS) $(OBJS) $(ELF) $(BIN)
