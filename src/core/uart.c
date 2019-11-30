@@ -1,5 +1,4 @@
-#include "LPC11xx.h"
-#include "type.h"
+// Copyright 2019 Johan Lasperas
 #include "uart.h"
 
 namespace UART {
@@ -27,10 +26,10 @@ void UART::DefaultIRQHandler() {
   // check bit 1~3, interrupt identification
   IIRValue &= 0x07;
   // Receive Line Status
-  if (IIRValue == IIR_RLS) {
+  if (IIRValue == IIR::RLS) {
     uint8_t LSRValue = LPC_UART->LSR;
     // Receive Line Status
-    if (LSRValue & (LSR_OE | LSR_PE | LSR_FE | LSR_RXFE | LSR_BI)) {
+    if (LSRValue & (LSR::OE | LSR::PE | LSR::FE | LSR::RXFE | LSR::BI)) {
       // There are errors or break interrupt
       // Read LSR will clear the interrupt
       Status = LSRValue;
@@ -39,7 +38,7 @@ void UART::DefaultIRQHandler() {
       return;
     }
     // Receive Data Ready
-    if (LSRValue & LSR_RDR) {
+    if (LSRValue & LSR::RDR) {
       // If no error on RLS, normal ready, save into the data buffer.
       // Note: read RBR will clear the interrupt
       Buffer[Count++] = LPC_UART->RBR;
@@ -49,21 +48,21 @@ void UART::DefaultIRQHandler() {
       }
     }
   // Receive Data Available
-  } else if (IIRValue == IIR_RDA) {
+  } else if (IIRValue == IIR::RDA) {
     Buffer[Count++] = LPC_UART->RBR;
     if (Count == BUFSIZE) {
       // buffer overflow
       Count = 0;
     }
   // Character timeout indicator
-  } else if (IIRValue == IIR_CTI) {
+  } else if (IIRValue == IIR::CTI) {
     // Bit 9 as the CTI error
     Status |= 0x100;
   // THRE, transmit holding register empty
-  } else if (IIRValue == IIR_THRE) {
+  } else if (IIRValue == IIR::THRE) {
     // Check status in the LSR to see if valid data in U0THR or not
     uint8_t LSRValue = LPC_UART->LSR;
-    if (LSRValue & LSR_THRE) {
+    if (LSRValue & LSR::THRE) {
       TxEmpty = 1;
     } else {
       TxEmpty = 0;
@@ -110,22 +109,22 @@ void UART::Init(uint32_t baudrate) {
   RegVal = LPC_UART->LSR;
 
   // Ensure a clean start, no data in either TX or RX FIFO.
-  while (( LPC_UART->LSR & (LSR_THRE|LSR_TEMT)) != (LSR_THRE|LSR_TEMT) )
+  while (( LPC_UART->LSR & (LSR::THRE|LSR::TEMT)) != (LSR::THRE|LSR::TEMT) )
     continue;
-  while ( LPC_UART->LSR & LSR_RDR ) {
+  while ( LPC_UART->LSR & LSR::RDR ) {
     // Dump data from RX FIFO
     RegVal = LPC_UART->RBR;
   }
   // Enable the UART Interrupt
   NVIC_EnableIRQ(UART_IRQn);
   // Enable UART interrupt
-  LPC_UART->IER = IER_RBR | IER_RLS;
+  LPC_UART->IER = IER::RBR | IER::RLS;
   return;
 }
 
 void UART::Send(uint8_t *BufferPtr, uint32_t Length) {
   while ( Length != 0 ) {
-    while ( !(LPC_UART->LSR & LSR_THRE) ) continue;
+    while ( !(LPC_UART->LSR & LSR::THRE) ) continue;
     LPC_UART->THR = *BufferPtr;
     BufferPtr++;
     Length--;
