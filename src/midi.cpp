@@ -1,37 +1,28 @@
 // Copyright 2019 Johan Lasperas
-
-
 #include "midi.hpp"
+
+#include "core/uart.h"
 
 namespace Midi {
 static volatile uint8_t midibuf[3];
 static volatile uint8_t midibytesleft = 0;
 static volatile uint8_t currentPos = 0;
 static volatile uint8_t num_bytes = 0;
-}
+static volatile uint32_t notes_down_[4] = {0, 0, 0, 0};
 
-void Midi::Print() {
-  char msg[4];
-  msg[0] = midibuf[0] >> 4;
-  msg[1] = midibuf[0] & 0x0F;
-  msg[2] = midibuf[1] >> 4;
-  msg[3] = midibuf[1] & 0x0F;
-  Display::Print(msg);
-}
+}  // namespace Midi
 
 void Midi::HandleCommand(uint8_t command, uint8_t note) {
-  Print();
-  switch (command) {
-    case 0x80:  /* note off */
-      if (note == 0x30) {
-        GPIO::SetValue(GPIO::Pin{GPIO::PORT0, 7}, 0);
-      }
+  switch (command & 0xF0) {
+    // Note OFF
+    case 0x80:
+      notes_down_[note/32] &= ~(0x0001 << (note%32));
       break;
-    case 0x90:  /* note on */
-      if (note == 0x30) {
-        GPIO::SetValue(GPIO::Pin{GPIO::PORT0, 7}, 1);
-      }
+    // Note ON
+    case 0x90: {
+      notes_down_[note/32] |= (0x0001 << (note%32));
       break;
+    }
     case 0xE0:  /* pitch bend */
     default:
       break;
@@ -49,11 +40,9 @@ void Midi::ReceiveHandler() {
   uint8_t byte = LPC_UART->RBR;
 
   // command byte
-  if (byte >= 0x80) {
+  if (byte >= 0xA0) {
     midibuf[0] = byte;
     switch (byte) {
-      case 0x80:  // note off
-      case 0x90:  // note on
       case 0xE0:  // pitch bend
         midibytesleft = 2;
         break;
@@ -67,6 +56,14 @@ void Midi::ReceiveHandler() {
       default:
         midibytesleft = 0;
     }
+  // Note OFF
+  } else if ((byte & 0xF0) == 0x80) {
+    midibuf[0] = byte;
+    midibytesleft = 2;
+  // Note ON
+  } else if ((byte & 0xF0) == 0x90) {
+    midibuf[0] = byte;
+    midibytesleft = 2;
   } else {
     // data byte
     if (midibytesleft > 0) {
