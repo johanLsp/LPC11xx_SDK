@@ -1,32 +1,49 @@
-/****************************************************************************
- *   $Id:: i2c.h 3662 2010-06-03 19:47:02Z usb00423                         $
- *   Project: NXP LPC11xx I2C example
- *
- *   Description:
- *     This file contains I2C code header definition.
- *
- ****************************************************************************
- * Software that is described herein is for illustrative purposes only
- * which provides customers with programming information regarding the
- * products. This software is supplied "AS IS" without any warranties.
- * NXP Semiconductors assumes no responsibility or liability for the
- * use of the software, conveys no license or title under any patent,
- * copyright, or mask work right to the product. NXP Semiconductors
- * reserves the right to make changes in the software without
- * notification. NXP Semiconductors also make no representation or
- * warranty that such application will be suitable for the specified
- * use without further testing or modification.
-****************************************************************************/
-#ifndef __I2C_H 
-#define __I2C_H
+// Copyright 2019 Johan Lasperas
+#ifndef SRC_CORE_I2C_H_
+#define SRC_CORE_I2C_H_
 
-/* If I2C SEEPROM is tested, make sure FAST_MODE_PLUS is 0.
-For board to board test, this flag can be turned on. */
+#include "LPC11xx.h"
 
-#define FAST_MODE_PLUS      0
+extern "C" void I2C_IRQHandler();
 
-#define BUFSIZE             64
-#define MAX_TIMEOUT         0x00FFFFFF
+namespace I2C {
+static const int kBufferSize = 4 * 128 + 1;
+typedef void (*Handler)();
+
+
+enum Control {
+  ACK = 0x1 << 2,
+  INTERRUPT = 0x1 << 3,
+  STOP = 0x1 << 4,
+  START = 0x1 << 5,
+  ENABLE = 0x1 << 6
+};
+
+enum Direction {
+  READ = 0x1,
+  WRITE = 0x0
+};
+
+enum class Status {
+  IDLE,
+  SUCCESS,
+  ERROR,
+  WRITING
+};
+
+void SetIRQHandler(Handler handler);
+void DefaultIRQHandler();
+
+void Init();
+bool Write(uint8_t address, uint8_t reg, const uint8_t* buffer,
+           uint32_t length);
+bool Read(uint8_t address, uint8_t reg, uint8_t* buffer, uint32_t length);
+uint8_t Scan();
+
+void SetControl(Control control);
+void ClearControl(Control control);
+
+}  // namespace I2C
 
 #define I2CMASTER           0x01
 #define I2CSLAVE            0x02
@@ -50,17 +67,6 @@ For board to board test, this flag can be turned on. */
 #define I2C_TIME_OUT          11
 #define I2C_OK                12
 
-#define I2CONSET_I2EN       (0x1<<6)  /* I2C Control Set Register */
-#define I2CONSET_AA         (0x1<<2)
-#define I2CONSET_SI         (0x1<<3)
-#define I2CONSET_STO        (0x1<<4)
-#define I2CONSET_STA        (0x1<<5)
-
-#define I2CONCLR_AAC        (0x1<<2)  /* I2C Control clear Register */
-#define I2CONCLR_SIC        (0x1<<3)
-#define I2CONCLR_STAC       (0x1<<5)
-#define I2CONCLR_I2ENC      (0x1<<6)
-
 #define I2DAT_I2C           0x00000000  /* I2C Data Reg */
 #define I2ADR_I2C           0x00000000  /* I2C Slave Address Reg */
 #define I2SCLH_SCLH         0x00000180  /* I2C SCL Duty Cycle High Reg */
@@ -68,13 +74,9 @@ For board to board test, this flag can be turned on. */
 #define I2SCLH_HS_SCLH		0x00000015  /* Fast Plus I2C SCL Duty Cycle High Reg */
 #define I2SCLL_HS_SCLL		0x00000015  /* Fast Plus I2C SCL Duty Cycle Low Reg */
 
-extern void I2C_IRQHandler( void );
 extern uint32_t I2CInit( uint32_t I2cMode );
 extern uint32_t I2CStart( void );
 extern uint32_t I2CStop( void );
 extern uint32_t I2CEngine( void );
 
-#endif /* end __I2C_H */
-/****************************************************************************
-**                            End Of File
-*****************************************************************************/
+#endif  // SRC_CORE_I2C_H_

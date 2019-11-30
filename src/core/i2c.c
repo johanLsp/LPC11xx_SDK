@@ -1,326 +1,250 @@
-/****************************************************************************
- *   $Id:: i2c.c 9374 2012-04-19 22:58:18Z nxp41306                         $
- *   Project: NXP LPC11xx I2C example
- *
- *   Description:
- *     This file contains I2C code example which include I2C initialization, 
- *     I2C interrupt handler, and APIs for I2C access.
- *
- ****************************************************************************
-* Software that is described herein is for illustrative purposes only
-* which provides customers with programming information regarding the
-* products. This software is supplied "AS IS" without any warranties.
-* NXP Semiconductors assumes no responsibility or liability for the
-* use of the software, conveys no license or title under any patent,
-* copyright, or mask work right to the product. NXP Semiconductors
-* reserves the right to make changes in the software without
-* notification. NXP Semiconductors also make no representation or
-* warranty that such application will be suitable for the specified
-* use without further testing or modification.
-
-* Permission to use, copy, modify, and distribute this software and its 
-* documentation is hereby granted, under NXP Semiconductors' 
-* relevant copyright in the software, without fee, provided that it 
-* is used in conjunction with NXP Semiconductors microcontrollers.  This 
-* copyright, permission, and disclaimer notice must appear in all copies of 
-* this code.
-****************************************************************************/
-#include "LPC11xx.h"			/* LPC11xx Peripheral Registers */
-#include "type.h"
+// Copyright 2019 Johan Lasperas
 #include "i2c.h"
+
+namespace I2C {
+Handler handler_;
+
+uint8_t slave_address_;
+uint8_t register_;
+uint8_t* read_buffer_;
+const uint8_t* write_buffer_;
+
+volatile uint32_t length_;
+volatile uint32_t index_;
+bool read_;
+
+bool debug_ = false;
+bool found_ = false;
+bool done_ = false;
+
+volatile Status status_; 
+volatile uint8_t states_[16] = {0, 0, 0, 0, 0, 0, 0, 0};
+volatile uint8_t state_index_ = 0;
 
 volatile uint32_t I2CMasterState = I2C_IDLE;
 volatile uint32_t I2CSlaveState = I2C_IDLE;
 volatile uint32_t timeout = 0;
-
-volatile uint8_t I2CMasterBuffer[BUFSIZE];
-volatile uint8_t I2CSlaveBuffer[BUFSIZE];
 volatile uint32_t I2CCount = 0;
 volatile uint32_t I2CReadLength;
 volatile uint32_t I2CWriteLength;
 
 volatile uint32_t RdIndex = 0;
 volatile uint32_t WrIndex = 0;
+}  // namespace I2C
 
-/* 
-From device to device, the I2C communication protocol may vary, 
-in the example below, the protocol uses repeated start to read data from or 
-write to the device:
-For master read: the sequence is: STA,Addr(W),offset,RE-STA,Addr(r),data...STO 
-for master write: the sequence is: STA,Addr(W),offset,RE-STA,Addr(w),data...STO
-Thus, in state 8, the address is always WRITE. in state 10, the address could 
-be READ or WRITE depending on the I2C command.
-*/   
+void I2C_IRQHandler() {
+  I2C::handler_();
+}
 
-/*****************************************************************************
-** Function name:		I2C_IRQHandler
-**
-** Descriptions:		I2C interrupt handler, deal with master mode only.
-**
-** parameters:			None
-** Returned value:		None
-** 
-*****************************************************************************/
-void I2C_IRQHandler(void) 
-{
-  uint8_t StatValue;
+void I2C::SetIRQHandler(Handler handler) {
+  handler_ = handler;
+}
 
-  timeout = 0;
-  /* this handler deals with master read and master write only */
-  StatValue = LPC_I2C->STAT;
-  switch ( StatValue )
-  {
-	case 0x08:			/* A Start condition is issued. */
-	WrIndex = 0;
-	LPC_I2C->DAT = I2CMasterBuffer[WrIndex++];
-	LPC_I2C->CONCLR = (I2CONCLR_SIC | I2CONCLR_STAC);
-	break;
-	
-	case 0x10:			/* A repeated started is issued */
-	RdIndex = 0;
-	/* Send SLA with R bit set, */
-	LPC_I2C->DAT = I2CMasterBuffer[WrIndex++];
-	LPC_I2C->CONCLR = (I2CONCLR_SIC | I2CONCLR_STAC);
-	break;
-	
-	case 0x18:			/* Regardless, it's a ACK */
-	if ( I2CWriteLength == 1 )
-	{
-	  LPC_I2C->CONSET = I2CONSET_STO;      /* Set Stop flag */
-	  I2CMasterState = I2C_NO_DATA;
-	}
-	else
-	{
-	  LPC_I2C->DAT = I2CMasterBuffer[WrIndex++];
-	}
-	LPC_I2C->CONCLR = I2CONCLR_SIC;
-	break;
-	
-	case 0x28:	/* Data byte has been transmitted, regardless ACK or NACK */
-	if ( WrIndex < I2CWriteLength )
-	{   
-	  LPC_I2C->DAT = I2CMasterBuffer[WrIndex++]; /* this should be the last one */
-	}
-	else
-	{
-	  if ( I2CReadLength != 0 )
-	  {
-		LPC_I2C->CONSET = I2CONSET_STA;	/* Set Repeated-start flag */
-	  }
-	  else
-	  {
-		LPC_I2C->CONSET = I2CONSET_STO;      /* Set Stop flag */
-		I2CMasterState = I2C_OK;
-	  }
-	}
-	LPC_I2C->CONCLR = I2CONCLR_SIC;
-	break;
-
-	case 0x30:
-	LPC_I2C->CONSET = I2CONSET_STO;      /* Set Stop flag */
-	I2CMasterState = I2C_NACK_ON_DATA;
-	LPC_I2C->CONCLR = I2CONCLR_SIC;
-	break;
-	
-	case 0x40:	/* Master Receive, SLA_R has been sent */
-	if ( (RdIndex + 1) < I2CReadLength )
-	{
-	  /* Will go to State 0x50 */
-	  LPC_I2C->CONSET = I2CONSET_AA;	/* assert ACK after data is received */
-	}
-	else
-	{
-	  /* Will go to State 0x58 */
-	  LPC_I2C->CONCLR = I2CONCLR_AAC;	/* assert NACK after data is received */
-	}
-	LPC_I2C->CONCLR = I2CONCLR_SIC;
-	break;
-	
-	case 0x50:	/* Data byte has been received, regardless following ACK or NACK */
-	I2CSlaveBuffer[RdIndex++] = LPC_I2C->DAT;
-	if ( (RdIndex + 1) < I2CReadLength )
-	{   
-	  LPC_I2C->CONSET = I2CONSET_AA;	/* assert ACK after data is received */
-	}
-	else
-	{
-	  LPC_I2C->CONCLR = I2CONCLR_AAC;	/* assert NACK on last byte */
-	}
-	LPC_I2C->CONCLR = I2CONCLR_SIC;
-	break;
-	
-	case 0x58:
-	I2CSlaveBuffer[RdIndex++] = LPC_I2C->DAT;
-	I2CMasterState = I2C_OK;
-	LPC_I2C->CONSET = I2CONSET_STO;	/* Set Stop flag */ 
-	LPC_I2C->CONCLR = I2CONCLR_SIC;	/* Clear SI flag */
-	break;
-
-	case 0x20:		/* regardless, it's a NACK */
-	case 0x48:
-	LPC_I2C->CONSET = I2CONSET_STO;      /* Set Stop flag */
-	I2CMasterState = I2C_NACK_ON_ADDRESS;
-	LPC_I2C->CONCLR = I2CONCLR_SIC;
-	break;
-	
-	case 0x38:		/* Arbitration lost, in this example, we don't
-					deal with multiple master situation */
-	default:
-	I2CMasterState = I2C_ARBITRATION_LOST;
-	LPC_I2C->CONCLR = I2CONCLR_SIC;	
-	break;
+// Each event on the I2C bus generates an interrupt.
+// At the moment, only Master mode is implemented, which
+// uses the following states:
+//  - 0x08 : Start bit sent
+//  - 0x10 : Repeated start bit sent
+//  - 0x18 : Address sent (Write), ACK received
+//  - 0x20 : Address sent (Write), NOT ACK received
+//  - 0x28 : Data sent, ACK received
+//  - 0x30 : Data sent, NOT ACK received
+//  - 0x38 : Arbitration lost during ACK
+//  - 0x40 : Address sent (Read), ACK received
+//  - 0x48 : Address sent (Read), NOT ACK received
+void I2C::DefaultIRQHandler() {
+  uint8_t StatValue = LPC_I2C->STAT;
+  if (state_index_ < 16) {
+    states_[state_index_++] = StatValue;
   }
-  return;
-}
-
-/*****************************************************************************
-** Function name:		I2CStart
-**
-** Descriptions:		Create I2C start condition, a timeout
-**				value is set if the I2C never gets started,
-**				and timed out. It's a fatal error. 
-**
-** parameters:			None
-** Returned value:		true or false, return false if timed out
-** 
-*****************************************************************************/
-uint32_t I2CStart( void )
-{
-  uint32_t timeout = 0;
-  uint32_t retVal = FALSE;
- 
-  /*--- Issue a start condition ---*/
-  LPC_I2C->CONSET = I2CONSET_STA;	/* Set Start flag */
-    
-  /*--- Wait until START transmitted ---*/
-  while( 1 )
-  {
-	if ( I2CMasterState == I2C_STARTED )
-	{
-	  retVal = TRUE;
-	  break;	
-	}
-	if ( timeout >= MAX_TIMEOUT )
-	{
-	  retVal = FALSE;
-	  break;
-	}
-	timeout++;
+  switch (StatValue) {
+    // Bus error
+    case 0x00:
+      status_ = Status::ERROR;
+      SetControl(ACK);
+      SetControl(STOP);
+      break;
+    // Start bit sent
+    case 0x08:
+    // Repeated start sent
+    case 0x10:
+      // Write slave address and read/write bit
+      LPC_I2C->DAT = slave_address_ | (read_ ? READ : WRITE);
+      break;
+    // Address sent (Write), ACK received
+    case 0x18:
+      found_ = true;
+      done_ = true;
+      // Load data
+      ClearControl(START);
+      LPC_I2C->DAT = register_;
+      break;
+    // Address sent (Write), NOT ACK received
+    case 0x20:
+      done_ = true;
+      // Repeat start
+      ClearControl(START);
+      LPC_I2C->DAT = register_;
+      break;
+    // Data sent, ACK received
+    case 0x28:
+      found_ = true;
+      done_ = true;
+      if (index_ < length_) {
+        LPC_I2C->DAT = write_buffer_[index_++];
+      } else {
+        // Send stop
+        status_ = Status::SUCCESS;
+        SetControl(STOP);
+      }
+      break;
+    // Data sent, NOT ACK received
+    case 0x30:
+      done_ = true;
+      if (index_ < length_) {
+        LPC_I2C->DAT = write_buffer_[index_++];
+      } else {
+        status_ = Status::SUCCESS;
+        // Send stop
+        SetControl(STOP);
+      }
+      break;
+    // Arbitration lost
+    case 0x38:
+      // Restart when possible
+      SetControl(START);
+      break;
+    // Address sent (Read), ACK received
+    case 0x40:
+      done_ = true;
+      found_ = true;
+      // Acknowledge
+      SetControl(ACK);
+      break;
+    // Address sent (Read), NOT ACK received
+    case 0x48:
+      done_ = true;
+      break;
+    // Data received, ACK received
+    case 0x50:
+      // Read data
+      read_buffer_[index_++] = LPC_I2C->DAT;
+      // Continue
+      SetControl(ACK);
+      break;
+    // Address sent (Read), NOT ACK received
+    case 0x58:
+      // Read data
+      read_buffer_[index_] = LPC_I2C->DAT;
+      // Stop
+      SetControl(STOP);
+      break;
   }
-  return( retVal );
+
+  // Reset the interrupt
+  ClearControl(INTERRUPT);
 }
 
-/*****************************************************************************
-** Function name:		I2CStop
-**
-** Descriptions:		Set the I2C stop condition, if the routine
-**				never exit, it's a fatal bus error.
-**
-** parameters:			None
-** Returned value:		true or never return
-** 
-*****************************************************************************/
-uint32_t I2CStop( void )
-{
-  LPC_I2C->CONSET = I2CONSET_STO;      /* Set Stop flag */ 
-  LPC_I2C->CONCLR = I2CONCLR_SIC;  /* Clear SI flag */ 
-            
-  /*--- Wait for STOP detected ---*/
-  while( LPC_I2C->CONSET & I2CONSET_STO );
-  return TRUE;
+uint8_t I2C::Scan() {
+  found_ = false;
+  while (!found_) {
+    for (uint8_t address = 0; address < 256; address+=2) {
+      done_ = false;
+      uint8_t reg = 0;
+      uint8_t buffer = 0;
+      Write(address, reg, &buffer, 1);
+      while (!done_) continue;
+      if (found_) return address;
+    }
+  }
+  return 0;
 }
 
-/*****************************************************************************
-** Function name:		I2CInit
-**
-** Descriptions:		Initialize I2C controller
-**
-** parameters:			I2c mode is either MASTER or SLAVE
-** Returned value:		true or false, return false if the I2C
-**				interrupt handler was not installed correctly
-** 
-*****************************************************************************/
-uint32_t I2CInit( uint32_t I2cMode ) 
-{
+void I2C::Init() {
+  states_[0] = 1;
+  states_[1] = 2;
+  states_[2] = 3;
+  states_[3] = 4;
+  state_index_ = 0;
+  // Reset I2C
   LPC_SYSCON->PRESETCTRL |= (0x1<<1);
+  // Enable the clock for the I2C domain
+  LPC_SYSCON->SYSAHBCLKCTRL |= SYSAHBCLKCTRL_GPIO;
+  LPC_SYSCON->SYSAHBCLKCTRL |= SYSAHBCLKCTRL_I2C;
 
-  LPC_SYSCON->SYSAHBCLKCTRL |= (1<<5);
-  LPC_IOCON->PIO0_4 &= ~0x3F;	/*  I2C I/O config */
-  LPC_IOCON->PIO0_4 |= 0x01;		/* I2C SCL */
-  LPC_IOCON->PIO0_5 &= ~0x3F;	
-  LPC_IOCON->PIO0_5 |= 0x01;		/* I2C SDA */
-  /* IOCON may change in the next release, save change for future references. */
-//  LPC_IOCON->PIO0_4 |= (0x1<<10);	/* open drain pins */
-//  LPC_IOCON->PIO0_5 |= (0x1<<10);	/* open drain pins */
+  // Set PIO0_4 pin function to SCL
+  LPC_IOCON->PIO0_4 &= ~0x07;
+  LPC_IOCON->PIO0_4  |= 0x01;
+  // Set I2C mode to Fast-mode I2C
+  // 0 = Standard mode/ Fast-mode I2C.
+  // 1 = Standard I/O functionality
+  // 2 = Fast-mode Plus I2C
+  LPC_IOCON->PIO0_4 &= ~(0x3 << 8);
+  LPC_IOCON->PIO0_4 |= 0x2 << 8;
+  // Set PIO0_5 pin function to SDA
+  LPC_IOCON->PIO0_5 &= ~0x07;
+  LPC_IOCON->PIO0_5  |= 0x01;
+  // Set I2C mode to Fast-mode I2C
+  // 0 = Standard mode/ Fast-mode I2C.
+  // 1 = Standard I/O functionality
+  // 2 = Fast-mode Plus I2C
+  LPC_IOCON->PIO0_5 &= ~(0x3 << 8);
+  LPC_IOCON->PIO0_5 |= 0x2 << 8;
 
-  /*--- Clear flags ---*/
-  LPC_I2C->CONCLR = I2CONCLR_AAC | I2CONCLR_SIC | I2CONCLR_STAC | I2CONCLR_I2ENC;    
+  LPC_I2C->SCLL   = 0x00000012;
+  LPC_I2C->SCLH   = 0x00000012;
+  // Clear control bits
+  ClearControl(START);
+  ClearControl(STOP);
+  ClearControl(INTERRUPT);
+  ClearControl(ENABLE);
 
-  /*--- Reset registers ---*/
-#if FAST_MODE_PLUS
-  LPC_IOCON->PIO0_4 |= (0x2<<8);
-  LPC_IOCON->PIO0_5 |= (0x2<<8);
-  LPC_I2C->SCLL   = I2SCLL_HS_SCLL;
-  LPC_I2C->SCLH   = I2SCLH_HS_SCLH;
-#else
-  LPC_I2C->SCLL   = I2SCLL_SCLL;
-  LPC_I2C->SCLH   = I2SCLH_SCLH;
-#endif
-
-  if ( I2cMode == I2CSLAVE )
-  {
-	LPC_I2C->ADR0 = PCF8594_ADDR;
-  }    
-
-  /* Enable the I2C Interrupt */
+  // Clear ack: device cannot enter slave mode
+  ClearControl(ACK);
+  status_ == Status::IDLE;
+  SetIRQHandler(DefaultIRQHandler);
+  // Enable the I2C Interrupt
   NVIC_EnableIRQ(I2C_IRQn);
-
-  LPC_I2C->CONSET = I2CONSET_I2EN;
-  return( TRUE );
+  // Enable I2C
+  SetControl(ENABLE);
 }
 
-/*****************************************************************************
-** Function name:		I2CEngine
-**
-** Descriptions:		The routine to complete a I2C transaction
-**				from start to stop. All the intermitten
-**				steps are handled in the interrupt handler.
-**				Before this routine is called, the read
-**				length, write length, I2C master buffer,
-**				and I2C command fields need to be filled.
-**				see i2cmst.c for more details. 
-**
-** parameters:			None
-** Returned value:		true or false, return false only if the
-**				start condition can never be generated and
-**				timed out. 
-** 
-*****************************************************************************/
-uint32_t I2CEngine( void ) 
-{
-  RdIndex = 0;
-  WrIndex = 0;
+bool I2C::Write(uint8_t address, uint8_t reg, const uint8_t* buffer,
+                uint32_t length) {
+  slave_address_ = address;
+  register_ = reg;
+  write_buffer_ = buffer;
+  length_ = length;
+  index_ = 0;
+  read_ = 0;
+  status_ = Status::WRITING;
+  SetControl(START);
 
-  /*--- Issue a start condition ---*/
-  LPC_I2C->CONSET = I2CONSET_STA;	/* Set Start flag */
-
-  I2CMasterState = I2C_BUSY;	
-
-  while ( I2CMasterState == I2C_BUSY )
-  {
-	if ( timeout >= MAX_TIMEOUT )
-	{
-	  I2CMasterState = I2C_TIME_OUT;
-	  break;
-	}
-	timeout++;
+  uint32_t timeout = 0;
+  uint32_t max_timeout = 0x00FFFFFF;
+  while (status_ == Status::WRITING) {
+    if (timeout >= max_timeout) {
+      return false;
+    }
+    timeout++;
   }
-  LPC_I2C->CONCLR = I2CONCLR_STAC;
-
-  return ( I2CMasterState );
+  return status_ == Status::SUCCESS;
 }
 
-/******************************************************************************
-**                            End Of File
-******************************************************************************/
+bool I2C::Read(uint8_t address, uint8_t reg, uint8_t* buffer, uint32_t length) {
+  slave_address_ = address;
+  register_ = reg;
+  read_buffer_ = buffer;
+  length_ = length;
+  index_ = 0;
+  read_ = 1;
+  SetControl(START);
+}
 
+void I2C::SetControl(Control control) {
+  LPC_I2C->CONSET = control;
+}
+
+void I2C::ClearControl(Control control) {
+  LPC_I2C->CONCLR = control;
+}
