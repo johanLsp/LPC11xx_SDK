@@ -1,9 +1,5 @@
 // Copyright 2019 Johan Lasperas
-
 #include "encoder.hpp"
-#include "dac.hpp"
-#include "display.hpp"
-
 
 namespace Encoder {
 const GPIO::Pin clock_ = {GPIO::PORT0, 3};
@@ -28,9 +24,9 @@ void Encoder::Init() {
   GPIO::SetInterrupt(data_, false, false, true);
   GPIO::SetInterrupt(switch_, false, true, true);
 
-  GPIO::SetIRQHandler(clock_, EventHandler);
-  GPIO::SetIRQHandler(data_, EventHandler);
-  GPIO::SetIRQHandler(switch_, EventHandler);
+  GPIO::SetIRQHandler(clock_, Turned);
+  GPIO::SetIRQHandler(data_, Turned);
+  GPIO::SetIRQHandler(switch_, Clicked);
 
   previous_state_ = GetState();
 }
@@ -39,37 +35,26 @@ uint32_t Encoder::GetState() {
   return 2*GPIO::GetValue(clock_) + GPIO::GetValue(data_);
 }
 
-void Encoder::EventHandler(GPIO::Pin pin) {
-  if (GPIO::InterruptStatus(clock_) || GPIO::InterruptStatus(data_)) {
-    int state = GetState();
-    int transition = 4*previous_state_ + state;
-    if (valid_transitions_[transition]) {
-      if (previous_transition_ == 0x2 && transition == 0xB) {
-        value_--;
-        ValueChanged();
-      } else if (previous_transition_ == 0x1 && transition == 0x7) {
-        value_++;
-        ValueChanged();
-      }
-      previous_state_ = state;
-      previous_transition_ = transition;
+void Encoder::Clicked(GPIO::Pin pin) {
+  // Do something
+}
+
+void Encoder::Turned(GPIO::Pin pin) {
+  int state = GetState();
+  int transition = 4*previous_state_ + state;
+  if (valid_transitions_[transition]) {
+    if (previous_transition_ == 0x2 && transition == 0xB) {
+      value_--;
+      ValueChanged();
+    } else if (previous_transition_ == 0x1 && transition == 0x7) {
+      value_++;
+      ValueChanged();
     }
-  } else if (GPIO::InterruptStatus(switch_)) {
-    Display::Print("----");
+    previous_state_ = state;
+    previous_transition_ = transition;
   }
-  GPIO::ClearInterrupt(pin);
 }
 
 void Encoder::ValueChanged() {
-  char msg[4];
-  msg[3] = value_ % 10;
-  msg[2] = (value_ / 10) % 10;
-  msg[1] = (value_ / 100) % 10;
-  msg[0] = (value_ / 1000) % 10;
-  Display::Print(msg);
-  if (value_ < 16) {
-    DAC::Set(DAC::DAC_A, value_ * 256);
-  } else if (value_ == 16) {
-    DAC::Set(DAC::DAC_A, 4095);
-  }
+  // Do something
 }
