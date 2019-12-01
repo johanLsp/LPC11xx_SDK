@@ -16,6 +16,9 @@ class GPIO {
   struct Pin {
       const Port port;
       const uint32_t pin;
+      bool operator==(const Pin& rhs) {
+        return port == rhs.port && pin == rhs.pin;
+      }
   };
 
   struct Trigger {

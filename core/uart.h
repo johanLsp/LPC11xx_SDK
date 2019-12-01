@@ -24,7 +24,9 @@ void SetIRQHandler(Handler handler);
 void DefaultIRQHandler();
 
 void Init(const Config& config);
-void Send(uint8_t *BufferPtr, uint32_t Length);
+void Send(const uint8_t* buffer, uint32_t length);
+// Convenience function to pass a null-terminated string.
+void Send(const char* buffer);
 
 namespace IER {
   enum IER {

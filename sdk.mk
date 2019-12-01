@@ -37,14 +37,14 @@ CCFLAGS+= -Os -fno-exceptions -fno-rtti -flto -ffunction-sections -specs=nosys.s
 # Generate the map output
 CCFLAGS+= -Wl,-Map,$(BUILD_DIR)/output.map
 
-LDFLAGS= -Wl,--as-needed -Wl,--gc-sections
+LDFLAGS= -Wl,--as-needed
 
 # Output .elf and .bin files
 ELF=$(BUILD_DIR)/$(FILENAME).elf
 BIN=$(BUILD_DIR)/$(FILENAME).bin
 
-SRC=$(wildcard src/*.cpp)
-OBJS := $(subst $(SRC_DIR),$(BUILD_DIR),$(SRC:.cpp=.o))
+SRC=$(wildcard $(SRC_DIR)/*.cpp)
+OBJS := $(subst $(SRC_DIR)/,$(BUILD_DIR)/,$(SRC:.cpp=.o))
 
 # Variables related to the SDK components
 CORE_DIR=$(SDK_DIR)/core

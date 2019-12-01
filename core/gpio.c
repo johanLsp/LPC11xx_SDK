@@ -44,6 +44,33 @@ GPIO::GPIO(Pin pin, Direction direction)
   // Enable AHB clock to the GPIO domain.
   LPC_SYSCON->SYSAHBCLKCTRL |= SYSAHBCLKCTRL_GPIO;
 
+
+  // Tor the following pins, GPIO is an alternate function
+  // and needs to be set manually.
+  // TODO: Find a better way of doing this.
+  if (pin == Pin{PORT0, 0}) {
+    LPC_IOCON->RESET_PIO0_0 &= ~0x7;
+    LPC_IOCON->RESET_PIO0_0 |= 0x1;
+  } else if (pin == Pin{PORT0, 10}) {
+    LPC_IOCON->SWCLK_PIO0_10 &= ~0x7;
+    LPC_IOCON->SWCLK_PIO0_10 |= 0x1;
+  } else if (pin == Pin{PORT0, 11}) {
+    LPC_IOCON->R_PIO0_11 &= ~0x7;
+    LPC_IOCON->R_PIO0_11 |= 0x1;
+  } else if (pin == Pin{PORT1, 0}) {
+    LPC_IOCON->R_PIO1_0 &= ~0x7;
+    LPC_IOCON->R_PIO1_0 |= 0x1;
+  } else if (pin == Pin{PORT1, 1}) {
+    LPC_IOCON->R_PIO1_1 &= ~0x7;
+    LPC_IOCON->R_PIO1_1 |= 0x1;
+  } else if (pin == Pin{PORT1, 2}) {
+    LPC_IOCON->R_PIO1_2 &= ~0x7;
+    LPC_IOCON->R_PIO1_2 |= 0x1;
+  } else if (pin == Pin{PORT1, 3}) {
+    LPC_IOCON->SWDIO_PIO1_3 &= ~0x7;
+    LPC_IOCON->SWDIO_PIO1_3 |= 0x1;
+  }
+
   SetDirection(direction);
   Off();
 }

@@ -47,8 +47,8 @@ Here's an example using the gpio component:
 ```
 #include "core/gpio.h"
   
-int main(int argc, char** argv) {
-  GPIO::Init(GPIO::PORT0);
+int main() {
+  SystemInit();
   GPIO output({GPIO::PORT0, 5}, GPIO::OUTPUT);
 
   output.Off();

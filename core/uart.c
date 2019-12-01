@@ -129,12 +129,18 @@ void UART::Init(const Config& config) {
   return;
 }
 
-void UART::Send(uint8_t *BufferPtr, uint32_t Length) {
-  while ( Length != 0 ) {
+void UART::Send(const uint8_t* buffer, uint32_t length) {
+  while ( length != 0 ) {
     while ( !(LPC_UART->LSR & LSR::THRE) ) continue;
-    LPC_UART->THR = *BufferPtr;
-    BufferPtr++;
-    Length--;
+    LPC_UART->THR = *buffer;
+    buffer++;
+    length--;
   }
   return;
+}
+
+void UART::Send(const char* buffer) {
+  int length = 0;
+  while (buffer[length] != '\0') length++;
+  Send(reinterpret_cast<const uint8_t*>(buffer), length);
 }

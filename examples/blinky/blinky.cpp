@@ -7,9 +7,11 @@
 /// - GPIO: Toggle a pin on and off.
 /// - Timer: Add time delays
 /// - UART: Send messages via the serial interface
-int main(int argc, char** argv) {
-  // Set PIO0_5 to output.
-  GPIO led({GPIO::PORT0, 5}, GPIO::OUTPUT);
+int main() {
+  SystemInit();
+  // Set PIO1_3 to output.
+  GPIO led({GPIO::PORT1, 3}, GPIO::OUTPUT);
+  led.On();
 
   // Enable Timer 32 - 1.
   Timer::Init(Timer::TIMER32_1, TIME_INTERVAL);
@@ -25,7 +27,7 @@ int main(int argc, char** argv) {
 
   while (true) {
     led.Toggle();
-    UART::Send("I'm alive!");
+    UART::Send("I'm alive!\n");
     Timer::DelayMs(Timer::TIMER32_1, 200);
   }
   return 0;
