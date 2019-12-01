@@ -1,5 +1,6 @@
-#ifndef SRC_CORE_GPIO_H_
-#define SRC_CORE_GPIO_H_
+// Copyright 2019 Johan Lasperas
+#ifndef SDK_CORE_GPIO_H_
+#define SDK_CORE_GPIO_H_
 
 #include "LPC11xx.h"
 
@@ -16,9 +17,12 @@ class GPIO {
       const Port port;
       const uint32_t pin;
   };
-  typedef void (*Handler)(Pin);
 
-  static void Init(Port port);
+  struct Trigger {
+    enum Type {LEVEL, EDGE} type;
+    enum Edge {RISING, FALLING, BOTH} edge;
+  };
+  typedef void (*Handler)(const GPIO& gpio);
 
   GPIO(Pin pin, Direction direction);
 
@@ -27,25 +31,26 @@ class GPIO {
   void On();
   void Off();
 
-  static void DispatchInterrupt(Port port);
-  static void SetIRQHandler(Pin pin, Handler handler);
-  static void DefaultIRQHandler(Pin pin);
-  static bool InterruptStatus(Pin pin);
-  static void SetInterrupt(Pin pin, bool level, bool single, bool event);
-  static void EnableInterrupt(Pin pin);
-  static void DisableInterrupt(Pin pin);
+  // Interrupt-related methods
+  void SetInterrupt(Trigger trigger, Handler handler);
+  void EnableInterrupt();
+  void DisableInterrupt();
 
+  static void DispatchInterrupt(Port port);
 
  private:
   static LPC_GPIO_TypeDef* const LPC_GPIO[4];
-  static void ClearInterrupt(Pin pin);
   static Handler handler_[4][12];
+  static GPIO* gpio_[4][12];
 
   void SetDirection(Direction direction);
+  void ClearInterrupt();
+  void SetIRQHandler(Handler handler);
+  bool InterruptStatus();
 
   // GPIO has up to 4 ports, 12 pins per port.
   Pin pin_;
   uint8_t value_;
 };
 
-#endif  // SRC_CORE_GPIO_H_
+#endif  // SDK_CORE_GPIO_H_

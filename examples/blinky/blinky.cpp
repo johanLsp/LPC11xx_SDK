@@ -9,7 +9,6 @@
 /// - UART: Send messages via the serial interface
 int main(int argc, char** argv) {
   // Set PIO0_5 to output.
-  GPIO::Init(GPIO::PORT0);
   GPIO led({GPIO::PORT0, 5}, GPIO::OUTPUT);
 
   // Enable Timer 32 - 1.
