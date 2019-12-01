@@ -37,7 +37,7 @@ void DefaultIRQHandler();
 void Init();
 bool Write(uint8_t address, uint8_t reg, const uint8_t* buffer,
            uint32_t length);
-bool Read(uint8_t address, uint8_t reg, uint8_t* buffer, uint32_t length);
+void Read(uint8_t address, uint8_t reg, uint8_t* buffer, uint32_t length);
 uint8_t Scan();
 
 void SetControl(Control control);

@@ -201,7 +201,7 @@ void I2C::Init() {
 
   // Clear ack: device cannot enter slave mode
   ClearControl(ACK);
-  status_ == Status::IDLE;
+  status_ = Status::IDLE;
   SetIRQHandler(DefaultIRQHandler);
   // Enable the I2C Interrupt
   NVIC_EnableIRQ(I2C_IRQn);
@@ -231,7 +231,7 @@ bool I2C::Write(uint8_t address, uint8_t reg, const uint8_t* buffer,
   return status_ == Status::SUCCESS;
 }
 
-bool I2C::Read(uint8_t address, uint8_t reg, uint8_t* buffer, uint32_t length) {
+void I2C::Read(uint8_t address, uint8_t reg, uint8_t* buffer, uint32_t length) {
   slave_address_ = address;
   register_ = reg;
   read_buffer_ = buffer;
