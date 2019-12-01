@@ -71,7 +71,7 @@ void UART::DefaultIRQHandler() {
   return;
 }
 
-void UART::Init(uint32_t baudrate) {
+void UART::Init(const Config& config) {
   uint32_t Fdiv;
   TxEmpty = 1;
   Count = 0;
@@ -95,13 +95,20 @@ void UART::Init(uint32_t baudrate) {
   LPC_SYSCON->UARTCLKDIV = 0x1;
 
   // 8 bits, no Parity, 1 Stop bit
-  LPC_UART->LCR = LCR::WLS8 | LCR::DLAB;
-  Fdiv = ((SystemCoreClock/LPC_SYSCON->UARTCLKDIV)/16)/baudrate;
+  LPC_UART->LCR = config.bits;
+  if (config.parity != NONE) {
+    LPC_UART->LCR |= LCR::PE;
+    LPC_UART->LCR |= config.parity << 4;
+  }
+  LPC_UART->LCR |= config.stopbits << 2;
+  LPC_UART->LCR |= LCR::DLAB;
+
+  Fdiv = ((SystemCoreClock/LPC_SYSCON->UARTCLKDIV)/16)/config.baudrate;
   LPC_UART->DLM = Fdiv / 256;
   LPC_UART->DLL = Fdiv % 256;
   LPC_UART->FDR = 0x10;
   // DLAB = 0
-  LPC_UART->LCR = LCR::WLS8;
+  LPC_UART->LCR &= ~LCR::DLAB;
   // Enable and reset TX and RX FIFO.
   LPC_UART->FCR = FCR::FIFOEN | FCR::RXFIFORES | FCR::TXFIFORES;
 

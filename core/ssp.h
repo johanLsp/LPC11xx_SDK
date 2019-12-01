@@ -1,4 +1,3 @@
-// Copyright 2019 Johan Lasperas
 #ifndef SRC_CORE_SSP_H_
 #define SRC_CORE_SSP_H_
 
@@ -11,6 +10,7 @@ namespace SSP {
 enum SSP {SSP0 = 0, SSP1};
 typedef void (*Handler)(SSP);
 
+enum ClockPin {PIO0_10 = 0, PIO2_11 = 1, PIO0_6 = 2};
 struct SSP_Config {
   bool slave;
   bool loopback;
@@ -18,6 +18,7 @@ struct SSP_Config {
   bool use_MISO;
   bool use_MOSI;
   uint8_t frame_size;
+  ClockPin clock;
 };
 
 void SetIRQHandler(SSP ssp, Handler handler);

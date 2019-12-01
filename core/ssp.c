@@ -1,4 +1,3 @@
-// Copyright 2019 Johan Lasperas
 #include "ssp.h"
 #include "gpio.h"
 
@@ -64,10 +63,20 @@ void SSP::IOConfig(SSP ssp, SSP_Config config) {
       LPC_IOCON->PIO0_9  &= ~0x07;
       LPC_IOCON->PIO0_9 |= 0x01;
     }
-    // P0.6 function 2 is SSP clock, need to
+    // P0.10 function 2 is SSP clock, need to
     // combined with IOCONSCKLOC register setting.
-    LPC_IOCON->SCK_LOC = 0x02;
-    LPC_IOCON->PIO0_6 = 0x02;
+    LPC_IOCON->SCK_LOC = config.clock;
+    switch (config.clock) {
+      case PIO0_6:
+        LPC_IOCON->PIO0_6 = 0x02;
+        break;
+      case PIO0_10:
+        LPC_IOCON->SWCLK_PIO0_10 = 0x02;
+        break;
+      case PIO2_11:
+        LPC_IOCON->PIO2_11 = 0x01;
+        break;
+    }
 
     if (config.use_CS) {
       // SSP SSEL
@@ -79,9 +88,8 @@ void SSP::IOConfig(SSP ssp, SSP_Config config) {
       // SSP SSEL is a GPIO pin
       LPC_IOCON->PIO0_2 &= ~0x07;
       // Port0, bit 2 is set to GPIO output and high.
-      GPIO::Pin ssel{GPIO::PORT0, 2};
-      GPIO::SetDirection(ssel, 1);
-      GPIO::SetValue(ssel, 1);
+      GPIO ssel({GPIO::PORT0, 2}, GPIO::OUTPUT);
+      ssel.On();
     }
   // SSP1
   } else {
@@ -114,9 +122,8 @@ void SSP::IOConfig(SSP ssp, SSP_Config config) {
       // SSP SSEL is a GPIO pin.
       LPC_IOCON->PIO2_0 &= ~0x07;
       // Port2, bit 0 is set to GPIO output and high.
-      GPIO::Pin ssel{GPIO::PORT0, 2};
-      GPIO::SetDirection(ssel, 1);
-      GPIO::SetValue(ssel, 1);
+      GPIO ssel({GPIO::PORT0, 2}, GPIO::OUTPUT);
+      ssel.On();
     }
   }
 }

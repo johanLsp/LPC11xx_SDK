@@ -10,10 +10,20 @@ extern "C" void UART_IRQHandler(void);
 namespace UART {
 typedef void (*Handler)();
 
+enum Parity {NONE = -1, ODD = 0, EVEN = 1, FORCE1 = 2, FORCE0 = 3};
+enum Bits {WLS5 = 0, WLS6 = 1, WLS7 = 2, WLS8 = 3};
+enum StopBits {SB1 = 0, SB2 = 1};
+struct Config {
+  uint32_t baudrate;
+  Bits bits;
+  Parity parity;
+  StopBits stopbits;
+};
+
 void SetIRQHandler(Handler handler);
 void DefaultIRQHandler();
 
-void Init(uint32_t Baudrate);
+void Init(const Config& config);
 void Send(uint8_t *BufferPtr, uint32_t Length);
 
 namespace IER {

@@ -1,16 +1,9 @@
-// Copyright 2019 Johan Lasperas
-#include "LPC11xx.h"
 #include "gpio.h"
 
-namespace GPIO {
-static LPC_GPIO_TypeDef* const LPC_GPIO[4] = {LPC_GPIO0, LPC_GPIO1,
+LPC_GPIO_TypeDef* const GPIO::LPC_GPIO[4] = {LPC_GPIO0, LPC_GPIO1,
                                               LPC_GPIO2, LPC_GPIO3};
-// GPIO has up to 4 ports, 12 pins per port.
-Handler handler_[4][12];
 
-void ClearInterrupt(Pin pin);
-void DispatchInterrupt(Port port);
-}
+GPIO::Handler GPIO::handler_[4][12] = {GPIO::DefaultIRQHandler};
 
 void PIOINT0_IRQHandler() {
   GPIO::DispatchInterrupt(GPIO::PORT0);
@@ -31,10 +24,8 @@ void PIOINT3_IRQHandler() {
 void GPIO::DispatchInterrupt(Port port) {
   for (uint32_t i = 0; i < 12; i++) {
     Pin pin{port, i};
-    if (InterruptStatus(pin)) {
-      handler_[port][i](pin);
-      ClearInterrupt(pin);
-    }
+    if (InterruptStatus(pin))
+    handler_[port][i](pin);
   }
 }
 
@@ -43,6 +34,21 @@ void GPIO::SetIRQHandler(Pin pin, Handler handler) {
 }
 
 void GPIO::DefaultIRQHandler(Pin pin) {
+  ClearInterrupt(pin);
+}
+
+GPIO::GPIO(Pin pin, Direction direction)
+: pin_(pin) {
+  SetDirection(direction);
+  Off();
+}
+
+void GPIO::SetDirection(Direction direction) {
+  if (direction) {
+    LPC_GPIO[pin_.port]->DIR |= 1 << pin_.pin;
+  } else {
+    LPC_GPIO[pin_.port]->DIR &= ~(1 << pin_.pin);
+  }
 }
 
 void GPIO::Init(Port port) {
@@ -53,33 +59,36 @@ void GPIO::Init(Port port) {
   // Set up NVIC when I/O pins are configured as external interrupts.
   // Enable the TIMER0 Interrupt
   IRQn_Type irq = static_cast<IRQn_Type>(EINT0_IRQn + port);
+
   NVIC_EnableIRQ(irq);
   return;
 }
 
-
-uint32_t GPIO::GetValue(Pin pin) {
+uint32_t GPIO::Read() {
   uint32_t regVal = 0;
-  if (pin.pin < 0x20) {
-    if (LPC_GPIO[pin.port]->DATA & (0x1 << pin.pin)) {
+  if (pin_.pin < 0x20) {
+    if (LPC_GPIO[pin_.port]->DATA & (0x1 << pin_.pin)) {
       regVal = 1;
     }
-  } else if (pin.pin == 0xFF) {
-    regVal = LPC_GPIO[pin.port]->DATA;
+  } else if (pin_.pin == 0xFF) {
+    regVal = LPC_GPIO[pin_.port]->DATA;
   }
   return regVal;
 }
 
-void GPIO::SetValue(Pin pin, uint32_t value) {
-  LPC_GPIO[pin.port]->MASKED_ACCESS[(1 << pin.pin)] = (value << pin.pin);
+void GPIO::On() {
+  value_ = 1;
+  LPC_GPIO[pin_.port]->MASKED_ACCESS[(1 << pin_.pin)] = (1 << pin_.pin);
 }
 
-void GPIO::SetDirection(const Pin& pin, uint32_t direction) {
-  if (direction) {
-    LPC_GPIO[pin.port]->DIR |= 1 << pin.pin;
-  } else {
-    LPC_GPIO[pin.port]->DIR &= ~(1 << pin.pin);
-  }
+void GPIO::Off() {
+  value_ = 0;
+  LPC_GPIO[pin_.port]->MASKED_ACCESS[(1 << pin_.pin)] = (0 << pin_.pin);
+}
+
+void GPIO::Toggle() {
+  value_ = value_ ? 0 : 1;
+  LPC_GPIO[pin_.port]->MASKED_ACCESS[(1 << pin_.pin)] = (value_ << pin_.pin);
 }
 
 void GPIO::SetInterrupt(Pin pin, bool level, bool single, bool event) {
@@ -109,6 +118,7 @@ void GPIO::SetInterrupt(Pin pin, bool level, bool single, bool event) {
     LPC_GPIO[port]->IEV &= ~(0x1 << bit);
   }
 
+  SetIRQHandler(pin, DefaultIRQHandler);
   EnableInterrupt(pin);
 }
 

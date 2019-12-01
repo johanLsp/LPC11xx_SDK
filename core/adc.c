@@ -54,7 +54,6 @@ void ADC::Init() {
 
 void ADC::EnableChannel(uint8_t index) {
   Channel channel = channels_[index];
-  GPIO::SetDirection(channel.pin, 1);
   // Enable AD functions
   *channel.reg &= ~0x07;
   *channel.reg  |= index > 4 ? 0x01 : 0x02;
